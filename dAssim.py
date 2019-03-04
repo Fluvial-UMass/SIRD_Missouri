@@ -19,7 +19,7 @@ class DataAssim(object):
         self.sDate = datetime.datetime(2000,1,1,0)
         self.eDate = datetime.datetime(2011,1,1,0)
 
-        self.undef = self.initFile.get("observation","undef")
+        self.undef = float(self.initFile.get("observation","undef"))
         self.runoffDir = "../data/case3/%02d"
         self.oDir = "./out/case3/"
         self.oFile = "discharge_%02d.csv"
@@ -32,7 +32,7 @@ class DataAssim(object):
         self.compile_ = False
 
         self.eNum = int(self.initFile.get("assimilation","ensMem"))
-        self.smooth = False
+
         self.nReach = 58
         self.reachStart = 1
         self.ndx = 20
@@ -56,6 +56,7 @@ class DataAssim(object):
             model.output(df,self.oName%ens,mode="w")
             model.output(df,self.oNameAssim%ens,mode="w")
         date = nDate
+        #date = self.sDate
         flag = True
         while date < self.eDate:
             # ensemble loop
@@ -70,13 +71,8 @@ class DataAssim(object):
                     model.output(dfAssim,self.oNameAssim%ens,mode="a")
             # assimilation if obs. is available
             if (date == assimDate).any():
-                if self.smooth:
-                    xa = self.dataAssim(date,lastAssimDate,obsDf)
-                    [self.__assimOut(xa[ens],ens,date,model) for ens in range(0,self.eNum)]
-                else:
-                    xa = self.dataAssim(date,lastAssimDate,obsDf)
-                    [self.__assimOut(xa[ens],ens,date,model) for ens in range(0,self.eNum)]
-                lastAssimDate = date
+                xa = self.dataAssim(date,obsDf)
+                [self.__assimOut(xa[ens],ens,date,model) for ens in range(0,self.eNum)]
                 
             date = nDate
 
@@ -99,10 +95,9 @@ class DataAssim(object):
 
     def __cms2cfs(self,cms):
 
-        if cms == self.daCore.undef:
-            cfs = self.daCore.undef
-        else:
-            cfs = cms/(0.3048**3)
+        cfs = cms/(0.3048**3)
+        cfs_undef = self.undef/(0.3048**3)
+        cfs[np.where(cfs-cfs_undef < 0.0001)] = self.undef
 
         return cfs
 
@@ -115,11 +110,10 @@ class DataAssim(object):
         return df
 
 
-    def dataAssim(self,date,lastAssimDate,obsDf):
+    def dataAssim(self,date,obsDf):
 
-        dLength = (date - lastAssimDate).days()
         obsMean, obsStd = self.__constObs(obsDf,date)
-        sim = np.zeros([self.eNum,dLength,self.nReach])
+        sim = np.zeros([self.eNum,self.nReach])
         RES = []
         for ens in range(0,self.eNum):
             e = pd.read_csv("./src/restartAssim_%02d.txt"%ens)
@@ -127,7 +121,7 @@ class DataAssim(object):
             for reach in range(1,self.nReach+1):
                 qout = e[e.i == reach]["old_q"].values[0]
                 sim[ens,reach-self.reachStart] = qout
-        xa = self.daCore.letkf_vector(sim.astype(np.float64),obsMean,obsStd.astype(np.float64),smooth=False)
+        xa = self.daCore.letkf_vector(sim.astype(np.float64),obsMean,obsStd.astype(np.float64))
         # never allow 0
         xa[np.where(xa<0.)] = np.absolute(xa[np.where(xa<0.)])
 
@@ -144,8 +138,8 @@ class DataAssim(object):
         obsMean = np.ones([self.nReach]) * self.daCore.undef
         obsStd  = np.ones([self.nReach]) * 0.01
 
-        obsMean[reaches] = obs.Mean.values
-        obsStd[reaches] = obs.Std.values
+        obsMean[reaches] = self.__cms2cfs(obs.Mean.values)
+        obsStd[reaches] = self.__cms2cfs(obs.Std.values)
 
         return obsMean, obsStd
 
