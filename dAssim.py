@@ -16,7 +16,7 @@ class DataAssim(object):
         self.config = config
         self.initFile = configparser.ConfigParser()
         self.initFile.read(config)
-        self.sDate = datetime.datetime(2000,1,1,0)
+        self.sDate = datetime.datetime(2002,10,7,0)
         self.eDate = datetime.datetime(2011,1,1,0)
 
         self.undef = float(self.initFile.get("observation","undef"))
@@ -32,6 +32,7 @@ class DataAssim(object):
         self.compile_ = False
 
         self.eNum = int(self.initFile.get("assimilation","ensMem"))
+        self.smoother = True
 
         self.nReach = 58
         self.reachStart = 1
@@ -58,7 +59,9 @@ class DataAssim(object):
         date = nDate
         #date = self.sDate
         flag = True
-        while date < self.eDate:
+        assimMemory_all = []
+        while date < self.eDate:    
+            assimMemory_ens = []
             # ensemble loop
             for ens in range(0,self.eNum):
                 # open loop
@@ -68,17 +71,30 @@ class DataAssim(object):
                 dfAssim,nDate = model.main_day(date,flag="restart",restart="restartAssim_%02d.txt"%ens,runoffDir=self.runoffDir%ens)
                 if not (date == assimDate).any():
                     # no assimilation. just update a state.
-                    model.output(dfAssim,self.oNameAssim%ens,mode="a")
+                    assimMemory_ens.append(dfAssim)
             # assimilation if obs. is available
             if (date == assimDate).any():
-                xa = self.dataAssim(date,obsDf)
-                [self.__assimOut(xa[ens],ens,date,model) for ens in range(0,self.eNum)]
-                
+                if len(assimMemory_all) == 1 or self.smoother==False:
+                    # observation was available at the previous time step. No smoother.
+                    print("serial")
+                    xa = self.dataAssim_pure(date,obsDf)
+                    [self.__assimOut(xa[ens,-1],ens,date,model) for ens in range(0,self.eNum)]
+                    assimMemory_all = []
+                else:
+                    print("multi")
+                    assimMemory = [list(x) for x in zip(*assimMemory_all)] #transpose a list
+                    xa,datesIndex = self.dataAssim_smooth(date,assimMemory,obsDf,self.smoother)
+                    [ [self.__assimOut(xa[ens,t],ens,datesIndex[t],model) for ens in range(0,self.eNum)] for t in range(0,len(datesIndex)) ]
+                    assimMemory_all = []
+            else:
+                # otherwise, memorize ensemble results
+                print("append")
+                assimMemory_all.append(assimMemory_ens)
             date = nDate
 
     
     def __assimOut(self,xa_each,ens,date,model):
-
+        "deprecated: should use applymap,update,to_csv for speed up."
         data = [date]
         [data.append(self.__cfs2cms(xa_each[reach-self.reachStart])) for reach in range(1,self.nReach+1)] # unit conversion cfs cms
         df = pd.DataFrame([np.array(data).T]).rename(columns={0:"Date"})
@@ -109,25 +125,50 @@ class DataAssim(object):
 
         return df
 
-
-    def dataAssim(self,date,obsDf):
+    def dataAssim_pure(self,date,obsDf,smoother=False):
 
         obsMean, obsStd = self.__constObs(obsDf,date)
-        sim = np.zeros([self.eNum,self.nReach])
+        sim = np.zeros([self.eNum,1,self.nReach])
         RES = []
         for ens in range(0,self.eNum):
             e = pd.read_csv("./src/restartAssim_%02d.txt"%ens)
             RES.append(e)
             for reach in range(1,self.nReach+1):
                 qout = e[e.i == reach]["old_q"].values[0]
-                sim[ens,reach-self.reachStart] = qout
-        xa = self.daCore.letkf_vector(sim.astype(np.float64),obsMean,obsStd.astype(np.float64))
+                sim[ens,:,reach-self.reachStart] = qout
+        xa = self.daCore.letkf_vector(sim.astype(np.float64),obsMean,obsStd.astype(np.float64),smoother=False)
         # never allow 0
         xa[np.where(xa<0.)] = np.absolute(xa[np.where(xa<0.)])
 
-        [self.__updateChannel(xa,RES[ens],ens) for ens in range(0,self.eNum)]
+        [self.__updateChannel(xa[:,-1,:],RES[ens],ens) for ens in range(0,self.eNum)]
 
         return xa
+
+    def dataAssim_smooth(self,date,assimMemory,obsDf,smoother=True):
+
+        obsMean, obsStd = self.__constObs(obsDf,date) # converted to cfs
+        print(assimMemory)
+        days = len(assimMemory[0]) # length in the temporal axis
+        sim = np.zeros([self.eNum,days+1,self.nReach]) # days = (length of previous simulations) + (current assimilation step (=1))
+        RES = []
+        for ens in range(0,self.eNum):
+            e = pd.read_csv("./src/restartAssim_%02d.txt"%ens)
+            dfAssim = pd.concat(assimMemory[ens],axis=0) # previous simulation results
+            RES.append(e)
+            print(dfAssim)
+            for reach in range(1,self.nReach+1):
+                qout = e[e.i == reach]["old_q"].values[0]
+                prevs = dfAssim.loc[:,str(reach)].values
+                sim[ens,0:-1,reach-self.reachStart] = self.__cms2cfs(prevs)
+                sim[ens,-1,reach-self.reachStart] = qout #cfs
+        datesIndex = dfAssim.index.tolist() # extract dates stored in dfAssim up to current date.
+        datesIndex.append(date) # append current date.
+        xa = self.daCore.letkf_vector(sim.astype(np.float64),obsMean,obsStd.astype(np.float64),smoother=smoother) # if smoother is Flase, only sim[:,-1,:] values are used for the one step assimilation. This is due to API behavior.
+        # never allow 0 [FUTURE UPDATES TO LOG?]
+        xa[np.where(xa<0.)] = np.absolute(xa[np.where(xa<0.)])
+        print(datesIndex)
+        [self.__updateChannel(xa[:,-1,:],RES[ens],ens) for ens in range(0,self.eNum)] # this is only needed for the last step of the xa (=truely assimilated (not smoothed) results). Thus xa[:,-1,:]
+        return xa, datesIndex
 
 
     def __constObs(self,obsDf,date):
