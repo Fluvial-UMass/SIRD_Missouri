@@ -12,7 +12,7 @@ do j=rstart,rend
 	qlat_ch=ex_s(j)*length_p(j)*2.0 !(fps*Lp)/ft/plane
 
 	qlat_ch_ave=0.5*(qlat_ch+qlat_ch_old(j)) !added 11/19/09
-
+    
 	!inflow = will be sum of upstream outflows;
 	if (nup(j).eq.0)then
 		q_in(j)= 0. !old_q(j,1) !first DX q
@@ -25,7 +25,7 @@ do j=rstart,rend
 	elseif(nup(j).eq.4)then
 		q_in(j)=old_q(uppfaf(j,1),ndx)+old_q(uppfaf(j,2),ndx)+old_q(uppfaf(j,3),ndx)+old_q(uppfaf(j,4),ndx)
 	endif
-   
+    
 	call route_mc_ch(j)
     
     qlat_ch_old(j)=qlat_ch 

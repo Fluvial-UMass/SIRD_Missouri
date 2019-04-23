@@ -3,7 +3,7 @@ module variables
         character(120)::    fname10,fname11,fname12,fname13,fname15
         character(120)::    fname100
         character(120)::    fname20,fname21,fname22,fname23,fname24,fname25
-        character(256)::    roffFile, restartFile
+        character(256)::    roffFile, restartFile, updateMode
         
         !output parameters
         integer,allocatable    :: idout(:)      !model unit ID for output (1 to pfafunits)

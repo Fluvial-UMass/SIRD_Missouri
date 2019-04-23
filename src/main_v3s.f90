@@ -26,7 +26,7 @@ program PFAF_Model
     !Prepare output files for results
     call outputdata1()
 
-    write(*,*) 'Starting HRR'
+    !write(*,*) 'Starting HRR'
     !##############################################################################
     !Start of Main time loop
     daynum=1 !start run on day 1

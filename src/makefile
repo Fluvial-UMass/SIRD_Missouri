@@ -20,7 +20,8 @@ $(PROGRAM): $(OBJECTS)
 .f90.o:
 	$(FC) -c $(FFLAGS) $*.f90 -o $*.o
 
-all: $(PROGRAM)
+all: $(PROGRAM) \
+     $(SUBPROGRAM)
 .PHONY: clean
 clean:
 	$(RM) $(PROGRAM) *.o *.mod

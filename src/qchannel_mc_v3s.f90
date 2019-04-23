@@ -24,7 +24,14 @@ subroutine route_mc_ch(j)
     	q_in(j)=q_out(j)
 	enddo
 
-	old_q(j,ndx)=q_out(j)
+    if (updateMode .eq. 'normal')then
+	    old_q(j,ndx)=q_out(j)
+    else if (updateMode .eq. 'assimUpdate')then
+        write(*,*) j,old_q_res(j,ndx)
+        old_q(j,ndx)=old_q_res(j,ndx)
+    else
+        write(*,*) 'invalid argument',updateMode
+    end if
 
 	return
 end subroutine route_mc_ch
@@ -51,6 +58,10 @@ subroutine muskin_cp(j,k)
     !cc4= 2.0 * c/cdenom (Ponce book, P323)
     
     !For constant Parameter, can pre-calculate cc1-cc4 (read in as input)
+    !write(*,*) "cc1(j),cc2(j),cc3(j),cc4(j)"
+    !write(*,*) cc1(j),cc2(j),cc3(j),cc4(j)
+    !write(*,*) "j,k,q_in(j),q_in_old(j),q_out_old(j)"
+    !write(*,*) j,k,q_in(j),q_in_old(j),q_out_old(j)
     q_out(j)=cc1(j)*q_in(j)+cc2(j)*q_in_old(j)+cc3(j)*q_out_old(j)+cc4(j)*qlat_ch_ave*(length_ch(j)/ndx)
     
  			

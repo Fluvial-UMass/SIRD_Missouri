@@ -7,9 +7,10 @@ subroutine inputdata1()
         character(120):: fname2, fname3
         fname2 = 'input.txt'
         open(2,file=fname2)
+        read(2,'(a)') updateMode
         read(2,'(a)') roffFile
         read(2,'(a)') restartFile
-        write(*,*) roffFile
+        write(*,*) "read in:",roffFile
         read(2,*) pfafunits
         read(2,*) ndx
         read(2,*) ndt
@@ -38,12 +39,12 @@ subroutine inputdata2(mode)
         
         if (mode.eq.'restart') then
             restart = restartFile
-            write(*,*) restart
+            write(*,*) "read in:",restart
             open(150,file=restart,status='old',action="read")
                 read(150,'()')
                 do j=1, numout
                     do k=1, ndx
-                        read(150,*) ji,ki,old_q_res(j,ndx),old_q_ch_in_res(j,k),old_q_ch_out_res(j,k),qlat_ch_old(j)
+                        read(150,*) ji,ki,old_q_res(j,k),old_q_ch_in_res(j,k),old_q_ch_out_res(j,k),qlat_ch_old(j)
                     enddo
                 enddo
             close(150)

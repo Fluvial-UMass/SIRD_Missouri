@@ -1,12 +1,13 @@
-../data/case6/19900107.txt
-./restart.txt
+normal
+../data/case3/09/20031231.txt
+restartAssim_09.txt
 58    pfafunits
 20    ndx
 24    ndt
 3600    dtis
-1990    iyear
-1    imonth
-7    iday
-7    Julian Day
+2003    iyear
+12    imonth
+31    iday
+365    Julian Day
 0.6    setfsub_rate
 1.0    n_ch_all
