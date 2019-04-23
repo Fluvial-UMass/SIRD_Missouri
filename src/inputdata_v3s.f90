@@ -5,11 +5,14 @@ contains
 !***Read the input.txt for those parameters
 subroutine inputdata1()
         character(120):: fname2, fname3
-        fname2 = 'input.txt'
+        call getarg(2, fname2)
+        !fname2 = 'input.txt'
         open(2,file=fname2)
         read(2,'(a)') updateMode
+        read(2,'(a)') rootDir
         read(2,'(a)') roffFile
         read(2,'(a)') restartFile
+        read(2,'(a)') outDir
         write(*,*) "read in:",roffFile
         read(2,*) pfafunits
         read(2,*) ndx
@@ -24,7 +27,7 @@ subroutine inputdata1()
         read(2,*) n_ch_all !channel roughness
         close(2)
              
-        fname3 = 'output_calibration.txt'
+        fname3 = trim(rootDir)//'/'//'output_calibration.txt'
         open(3,file=fname3)
         read(3,*) numout
         close(3)
@@ -38,8 +41,8 @@ subroutine inputdata2(mode)
         integer :: ji,ki
         
         if (mode.eq.'restart') then
-            restart = restartFile
-            write(*,*) "read in:",restart
+            restart = trim(outDir)//'/'//restartFile
+            write(*,*) "restart from:",restart
             open(150,file=restart,status='old',action="read")
                 read(150,'()')
                 do j=1, numout
@@ -50,7 +53,7 @@ subroutine inputdata2(mode)
             close(150)
         endif
 
-        fname4 = 'channels.txt'       
+        fname4 = trim(rootDir)//'/'//'channels.txt'       
          
         open(4,file=fname4)
 

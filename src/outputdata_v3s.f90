@@ -7,7 +7,7 @@ subroutine outputdata1()
     CHARACTER(LEN=80) :: FMT
 
     !Get output locations
-    fname11 = 'output_calibration.txt'
+    fname11 = trim(rootDir)//'/'//'output_calibration.txt'
     open(11,file=fname11,status='OLD')
     read(11,*) numout
     do k=1,numout
@@ -15,7 +15,8 @@ subroutine outputdata1()
     enddo
     close(11)
 
-    fname12 = 'discharge_cms.txt'
+    !fname12 = 'discharge_cms.txt'
+    fname12 = trim(outDir)//'/discharge_cms.txt'
     open(12,file=fname12,status='REPLACE')
     FMT = "(00000i15)"
     write(FMT(2:6),'(i5.5)') numout
@@ -28,7 +29,8 @@ end subroutine outputdata1
 subroutine resultsout()
     CHARACTER(LEN=80) :: FMT
     !Open results file for specified model units
-    fname12 = 'discharge_cms.txt'
+    !fname12 = 'discharge_cms.txt'
+    fname12 = trim(outDir)//'/discharge_cms.txt'
     open(12,file=fname12,status='OLD',POSITION='APPEND')
     FMT = "(00000F15.3)"
     write(FMT(2:6),'(i5.5)') numout
@@ -41,7 +43,7 @@ end subroutine resultsout
 subroutine restartout()
     character(256) :: buf, resname
     !write restart file
-    resname = restartFile
+    resname = trim(outDir)//'/'//trim(restartFile)
     open(128,file=resname,status='REPLACE')
     write(128,'(a)') "i,k,old_q,old_q_ch_in,old_q_ch_out,qlat_ch_old"
     do i=1, numout

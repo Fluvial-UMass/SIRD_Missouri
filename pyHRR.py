@@ -18,27 +18,29 @@ class HRR(object):
         # read input info. for HRR.
         self.config = configparser.ConfigParser()
         self.config.read(config)
+        self.rootDir = self.config.get("model", "rootDir")
+
+        # file name configuration
+        self.srcDir = os.path.join(self.rootDir, "src/")
+        self.exe = os.path.join(self.srcDir, "run")
 
         # compile or not
         if compile_:
             self.__compile()
 
-        # file name configuration
-        self.exe = "./run"
-
 
     def __compile(self):
         
         print("compilation is activated. Make clean/all.")
-        os.chdir("./src")
+        os.chdir(self.srcDir)
         print("make clean")
         subprocess.check_call(["make","clean"])
         print("make all")
         subprocess.check_call(["make","all"])
-        os.chdir("../")
+        os.chdir(self.rootDir)
 
 
-    def __createInputFile(self,date,runoffDir,restart,mode):
+    def __createInputFile(self,date,runoffDir,restart,mode,outDir):
 
         assimUpdate = mode
         roffData = os.path.join(runoffDir,"%s.txt"%(date.strftime("%Y%m%d")))
@@ -57,11 +59,14 @@ class HRR(object):
 
         VARS = ["pfafunits","ndx","ndt","dtis","iyear","imonth","iday","Julian Day","setfsub_rate","n_ch_all"]
         VALS = {"pfafunits":pfafunits,"ndx":ndx,"ndt":ndt,"dtis":dtis,"iyear":iyear,"imonth":imonth,"iday":iday,"Julian Day":doy,"setfsub_rate":sbRate,"n_ch_all":n_ch_all}
-
-        with open("./src/input.txt",mode="w") as f:
+        
+        self.infoPath = os.path.join(outDir,"input.txt")
+        with open(self.infoPath,mode="w") as f:
             f.write("%s\n"%assimUpdate)
+            f.write("%s\n"%self.srcDir)
             f.write("%s\n"%roffData)
-            f.write("%s\n"%restFile)
+            f.write("%s\n"%restart)
+            f.write("%s\n"%outDir)
             [f.write("%s    %s\n" % (str(VALS[var]),var)) for var in VARS]
 
 
@@ -78,7 +83,7 @@ class HRR(object):
             raise IOError("mode %s is unsupported."%mode)
 
 
-    def main_day(self,date,flag="restart",restart="restart.txt",runoffDir="../data/case6/",mode="normal"):
+    def main_day(self,date,flag="restart",restart="restart.txt",runoffDir="../data/case6/",mode="normal",outDir="./out"):
         """
             main API to handle HRR
         """
@@ -88,15 +93,13 @@ class HRR(object):
             raise IOError("Undefined flag mode %s"%flag)
 
         # create input information file for HRR
-        self.__createInputFile(date,runoffDir,restart,mode)
+        self.__createInputFile(date,runoffDir,restart,mode,outDir)
 
         # activate HRR
-        os.chdir("./src")
-        subprocess.check_call([self.exe, flag])
-        os.chdir("../")
+        subprocess.check_call([self.exe, flag, self.infoPath])
 
         nDate = date + datetime.timedelta(seconds = self.outerDt)
-        out = pd.read_csv("src/discharge_cms.txt",header=0,sep="\s+").rename(index={0:date})
+        out = pd.read_csv(os.path.join(outDir,"discharge_cms.txt"),header=0,sep="\s+").rename(index={0:date})
 
         return out, nDate
 
@@ -105,11 +108,13 @@ if __name__ == "__main__":
 
     config = "./config.ini"
     compile_ = True
+    runoffDir ="/home/yi79a/DA/missouli/pyHRR/data/case3/00/"
+    outDir = "/home/yi79a/DA/missouli/pyHRR/src/out"
     model = HRR(config,compile_=compile_)
     date = datetime.datetime(1990,1,1,0)
-    out,nDate = model.main_day(date,flag="initial")
+    out,nDate = model.main_day(date,flag="initial",runoffDir=runoffDir,outDir=outDir)
     date = nDate
     while date < datetime.datetime(1990,1,5,0):
-        out, nDate = model.main_day(date,flag="restart")
+        out, nDate = model.main_day(date,flag="restart",runoffDir=runoffDir,outDir=outDir)
         date = nDate
     model.output(out,"./out/test.csv",mode="w")
