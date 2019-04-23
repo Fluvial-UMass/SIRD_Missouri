@@ -1,2 +1,2 @@
 # pyHRR
-this version is based on Python2. Replacing print to print() will make this code work in Python3.  
+A simple python wrapper to handle the HRR model. DAssim.py is a sample code to conduct data assimilation coupled with the pyHRR.   
