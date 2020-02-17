@@ -22,6 +22,8 @@ def updateQinout(np.ndarray[DTYPE_float_t, ndim=1] update_qs, np.ndarray[DTYPE_i
         upa_reach = [r for r in upa_reach if r > 0]
         q_init = update_qs[upa_reach].sum() # Fancy indexing
         q_tail = update_qs[reach]
+        if np.isinf(q_tail).any():
+            print(reach, q_init, q_tail)
         if q_tail < 0.00001:
             q_ch_in = np.zeros(ndx)
             q_ch_out = np.zeros(ndx)
