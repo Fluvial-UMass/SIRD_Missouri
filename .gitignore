@@ -1,0 +1,7 @@
+*.mod
+*.c
+build/
+.vscode/
+hillslope_src/*.txt
+*.so
+hillslope_src/run
