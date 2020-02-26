@@ -11,6 +11,8 @@ subroutine inputdata1()
         read(2,'(a)') updateMode
         read(2,'(a)') rootDir
         read(2,'(a)') roffFile
+        read(2,'(a)') channelsFile
+        read(2,'(a)') planesFile
         read(2,'(a)') restartFile
         read(2,'(a)') outDir
         !write(*,*) "read in:",roffFile
@@ -54,8 +56,8 @@ subroutine inputdata2(mode)
             close(150)
         endif
 
-        fname3 = trim(rootDir)//'/'//'planes.txt'
-        fname4 = trim(rootDir)//'/'//'channels_missouri_rz.txt'
+        fname3 = trim(rootDir)//'/'//trim(planesFile)
+        fname4 = trim(rootDir)//'/'//trim(channelsFile)
 
         open(3,file=fname3)
         open(4,file=fname4)

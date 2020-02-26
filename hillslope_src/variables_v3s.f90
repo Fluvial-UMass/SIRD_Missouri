@@ -4,6 +4,7 @@ module variables
         character(120)::    fname100
         character(120)::    fname20,fname21,fname22,fname23,fname24,fname25
         character(256)::    roffFile, restartFile, updateMode, rootDir, outDir
+        character(256)::    planesFile, channelsFile
 
         !output parameters
         integer,allocatable    :: idout(:)      !model unit ID for output (1 to pfafunits)

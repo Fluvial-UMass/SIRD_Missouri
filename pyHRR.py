@@ -23,6 +23,8 @@ class HRR(object):
 
         # file name configuration
         self.srcDir = self.config.get("model", "srcDir")
+        self.channelPath = self.config.get("model", "channelPath")
+        self.planesPath = self.config.get("model", "planesPath")
         self.exe = os.path.join(self.srcDir, "run")
 
         # compile or not
@@ -44,10 +46,9 @@ class HRR(object):
         assimUpdate = mode
         roffData = os.path.join(runoffDir,
                                 "%s.txt" % (date.strftime("%Y%m%d")))
-        restFile = restart
         pfafunits = self.config.get("input", "pfafunits")
         ndx = self.config.get("input", "ndx")
-        ndt = 24 # for future improvement
+        ndt = 24  # for future improvement
         dtis = 3600  # for future improvement
         self.outerDt = dtis * ndt
         iyear = date.year
@@ -83,6 +84,8 @@ class HRR(object):
             f.write("%s\n" % assimUpdate)
             f.write("%s\n" % self.srcDir)
             f.write("%s\n" % roffData)
+            f.write("%s\n" % self.channelPath)
+            f.write("%s\n" % self.planesPath)
             f.write("%s\n" % restart)
             f.write("%s\n" % outDir)
             [f.write("%s    %s\n" % (str(VALS[var]), var)) for var in VARS]
