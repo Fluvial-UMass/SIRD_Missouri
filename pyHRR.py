@@ -2,16 +2,15 @@ import configparser
 import datetime
 import os
 import subprocess
-import sys
-
-import numpy as np
 import pandas as pd
+import numpy as np
 
 
 class HRR(object):
     def __init__(self, config, compile_=False):
         """"
-            THis is a python-wrapper to handle HRR model in conjunction with a data assimilation module.
+            THis is a python-wrapper to handle HRR model
+            in conjunction with a data assimilation module.
             Small edition of original source code was performed.
             v.1.0.0: Daily simulation.
             Coding: Yuta Ishitsuka
@@ -129,3 +128,13 @@ class HRR(object):
                           sep="\s+").rename(index={0: date})
 
         return out, nDate
+
+    def read_OutID(self, file="output_calibration.txt"):
+        path = os.path.exists(self.srcDir, file)
+        with open(path, "r") as f:
+            lines = f.readlines()
+            numout = int(lines[0])
+            outids = []
+            for i in range(numout):
+                outids.append(int(lines[i].split("\s+")[0]))
+        return np.array(outids)

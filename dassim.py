@@ -57,6 +57,8 @@ class DA_pyHRR(object):
         self.daCore.initialize(backend="pickle")
         # initialize pyHRR
         self.model = pyHRR.HRR(config, compile_=self.compile_)
+        self.outReachID = self.model.read_OutID()  # HRRID
+        self.outReachIdx = self.outReachIdx - self.reachStart  # idx
         # read obs
         self.obsDf = self.readObs()
         self.assimDates = self.obsDf.index
@@ -131,7 +133,7 @@ class DA_pyHRR(object):
             for date in dates:
                 forward(date)
 
-    def forward(date):
+    def forward(self, date):
         # forwarding step
         nDate = simulation_parallel(date, self.eTot, self.model,
                                     rnofRt, outRt, self.oName,
@@ -139,7 +141,7 @@ class DA_pyHRR(object):
         # assimilation if applicable
         if (date == self.assimDates).any():
             xa = self.dataAssim(date, self.obsDf, self.eTot)
-            assimOut_parallel(xa, date, self.model,
+            assimOut_parallel(xa[self.outReachIdx], date, self.model,
                               self.cfs2cms, self.oNameAssim,
                               self.eTot, ncpus=self.nCpus)
         if date.month == 12 and date.day == 31:
@@ -207,13 +209,6 @@ class DA_pyHRR(object):
         outArray = np.log(array)
         outArray[np.where(array==self.daCore.undef)] = self.daCore.undef
         return outArray
-
-    def __assimOut(self, xa_each, eNum, date, modelInstance):
-        df = pd.DataFrame(xa_each).apply(self.cfs2cms, axis=1)
-        df = df.T
-        df.index = [date]
-        df.reset_index().rename({"index":"Date"}, axis=1).set_index("Date")
-        modelInstance.output(df, self.oNameAssim%eNum, mode="a")
 
     def __readRestart(self,eNum):
         dfPath = os.path.join(self.rootDir,self.oDir%eNum,"restartAssim.txt")
