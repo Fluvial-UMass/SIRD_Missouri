@@ -1,7 +1,10 @@
 # HRR-BAM Data assimilation [Internal]  
 
-## Prerequisite  
+## Prerequisite
+- Python3  
 - [pyletkf](https://github.com/windsor718/pyletkf)  
+- numpy  
+- pandas  
 
 ## Quick start  
 ### Before you run a simulation  
