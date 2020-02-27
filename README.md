@@ -22,7 +22,7 @@ Run a new simulation without progressbar (recommended if you batch the script):
 ```bash
 python dassim.py -c [configuration file] -s [start date] -e [end date]  
 ```
-Run a simulation from an existing restart file (restart.txt/restartAssim.txt in your output directory):  
+Run a simulation from an existing restart file (restart.bin/restartAssim.bin in your output directory):  
 ```bash
 python dassim.py -c [configuration file] -s [start date] -e [end date] --restart
 ```
