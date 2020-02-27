@@ -88,7 +88,7 @@ class HRR(object):
             f.write("%s\n" % restart)
             f.write("%s\n" % outDir)
             [f.write("%s    %s\n" % (str(VALS[var]), var)) for var in VARS]
-
+ 
     def output(self, df, oName, mode="a"):
 
         if mode == "w":
@@ -100,7 +100,7 @@ class HRR(object):
                 df.to_csv(f, header=False)
         else:
             raise IOError("mode %s is unsupported." % mode)
-
+  
     def main_day(self,
                  date,
                  flag="restart",
@@ -130,11 +130,31 @@ class HRR(object):
         return out, nDate
 
     def read_OutID(self, file="output_calibration.txt"):
-        path = os.path.exists(self.srcDir, file)
+        path = os.path.join(self.srcDir, file)
         with open(path, "r") as f:
             lines = f.readlines()
             numout = int(lines[0])
             outids = []
-            for i in range(numout):
-                outids.append(int(lines[i].split("\s+")[0]))
+            for i in range(1, numout):
+                outids.append(int(lines[i].split()[0]))
         return np.array(outids)
+
+
+if __name__ == "__main__":
+    import time
+    stime = time.time()
+    test = HRR("./config/config_MERIT_cal10.ini")
+    sdate = datetime.datetime(2002, 10, 1)
+    edate = datetime.datetime(2003, 10, 1)
+    df, ndate = \
+        test.main_day(sdate, flag="initial", restart="restart.bin",
+                      runoffDir="../data/runoff/meritvic_shyears/corrected/00")
+    test.output(df, "test.csv", mode="w")
+    date = ndate
+    while date < edate:
+        print(date)
+        df, date = \
+            test.main_day(date, flag="restart", restart="restart.bin",
+                          runoffDir="../data/runoff/meritvic_shyears/corrected/00")
+        test.output(df, "test.csv", mode="a")
+    print("elapsed:",time.time()-stime)

@@ -5,3 +5,4 @@ build/
 hillslope_src/*.txt
 *.so
 hillslope_src/run
+__pycache__
