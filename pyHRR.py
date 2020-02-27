@@ -88,7 +88,7 @@ class HRR(object):
             f.write("%s\n" % restart)
             f.write("%s\n" % outDir)
             [f.write("%s    %s\n" % (str(VALS[var]), var)) for var in VARS]
- 
+
     def output(self, df, oName, mode="a"):
 
         if mode == "w":
@@ -100,7 +100,7 @@ class HRR(object):
                 df.to_csv(f, header=False)
         else:
             raise IOError("mode %s is unsupported." % mode)
-  
+
     def main_day(self,
                  date,
                  flag="restart",

@@ -6,8 +6,6 @@ module variables
         character(256)::    roffFile, restartFile, updateMode, rootDir, outDir
         character(256)::    planesFile, channelsFile
 
-        integer,parameter :: JPRM = SELECTED_REAL_KIND(6,37)
-
         !output parameters
         integer,allocatable    :: idout(:)      !model unit ID for output (1 to pfafunits)
         integer,allocatable    :: idgauge(:)    !Gauge ID for output PFAF ID
@@ -18,51 +16,51 @@ module variables
         integer,allocatable    :: downpfaf(:)   !model unit downstream
         integer,allocatable    :: nup(:)        !number of upstream model units
         integer,allocatable    :: uppfaf(:,:)   !model unit ID for 1 or 2 unpstream units
-        real(kind=JPRM),allocatable       :: A(:)          !model unit area (km2)
-        real(kind=JPRM),allocatable       :: Aup(:)        !total upstream pfaf area (km2)
-        real(kind=JPRM),allocatable       :: chv1(:)       !part of mannings equ, for getting depth from Q
+        real,allocatable       :: A(:)          !model unit area (km2)
+        real,allocatable       :: Aup(:)        !total upstream pfaf area (km2)
+        real,allocatable       :: chv1(:)       !part of mannings equ, for getting depth from Q
 
         !WBM parameters
-	    real(kind=JPRM),allocatable    :: ex_s(:)          !surface excess from WBM (ft/s)
+	    real,allocatable    :: ex_s(:)          !surface excess from WBM (ft/s)
 
         !channel parameters
-	    real(kind=JPRM),allocatable    :: Qr_ch(:)         !reference discharge (cfs)
-	    real(kind=JPRM),allocatable    :: n_ch(:)          !Manning's n of the channel
-	    real(kind=JPRM),allocatable    :: length_ch(:)     !length of the channel, ft
+	    real,allocatable    :: Qr_ch(:)         !reference discharge (cfs)
+	    real,allocatable    :: n_ch(:)          !Manning's n of the channel
+	    real,allocatable    :: length_ch(:)     !length of the channel, ft
 	    !real,allocatable    :: length_p(:)     !length of the plane, ft
-	    real(kind=JPRM),allocatable    :: slope_ch(:)      !slope of the channel, ft/ft
-	    real(kind=JPRM),allocatable    :: width_ch(:)      !width of the channel, ft
+	    real,allocatable    :: slope_ch(:)      !slope of the channel, ft/ft
+	    real,allocatable    :: width_ch(:)      !width of the channel, ft
 
-	    real(kind=JPRM),allocatable    :: cc1(:)           !MC - Constant Parameter, ch: 1
-	    real(kind=JPRM),allocatable    :: cc2(:)           !MC - Constant Parameter, ch: 2
-	    real(kind=JPRM),allocatable    :: cc3(:)           !MC - Constant Parameter, ch: 3
-	    real(kind=JPRM),allocatable    :: cc4(:)           !MC - Constant Parameter, ch: 4
+	    real,allocatable    :: cc1(:)           !MC - Constant Parameter, ch: 1
+	    real,allocatable    :: cc2(:)           !MC - Constant Parameter, ch: 2
+	    real,allocatable    :: cc3(:)           !MC - Constant Parameter, ch: 3
+	    real,allocatable    :: cc4(:)           !MC - Constant Parameter, ch: 4
 
-	    real(kind=JPRM),allocatable    :: q_out(:)         !model unit ch Q (cfs) out
-	    real(kind=JPRM),allocatable    :: q_in(:)          !model unit ch Q (cfs) in
-	    real(kind=JPRM),allocatable    :: q_in_old(:)      !model unit ch Q (cfs) old in
-	    real(kind=JPRM),allocatable    :: q_out_old(:)     !model unit ch Q (cfs) old out
-	    real(kind=JPRM),allocatable    :: old_q(:,:)       !model unit ch Q (cfs) old for each dx
-	    real(kind=JPRM),allocatable    :: old_q_day(:)     !model unit ch Q (cfs) for daily average
-	    real(kind=JPRM),allocatable    :: old_q_ch_in(:,:)    !model unit ch Q (cfs) old for each dx
-	    real(kind=JPRM),allocatable    :: old_q_ch_out(:,:)    !model unit ch Q (cfs) old for each dx
-	    real(kind=JPRM),allocatable    :: old_q_res(:,:)   !model unit ch Q (cfs) old for each dx at last time step
-	    real(kind=JPRM),allocatable    :: old_q_ch_in_res(:,:) !model unit ch Q (cfs) old for each dx at last time step
-	    real(kind=JPRM),allocatable    :: old_q_ch_out_res(:,:) !model unit ch Q (cfs) old for each dx at last time step
-	    real(kind=JPRM),allocatable    :: qlat_ch_old(:)   !old lateral flow into channel (cfs/ft)
+	    real,allocatable    :: q_out(:)         !model unit ch Q (cfs) out
+	    real,allocatable    :: q_in(:)          !model unit ch Q (cfs) in
+	    real,allocatable    :: q_in_old(:)      !model unit ch Q (cfs) old in
+	    real,allocatable    :: q_out_old(:)     !model unit ch Q (cfs) old out
+	    real,allocatable    :: old_q(:,:)       !model unit ch Q (cfs) old for each dx
+	    real,allocatable    :: old_q_day(:)     !model unit ch Q (cfs) for daily average
+	    real,allocatable    :: old_q_ch_in(:,:)    !model unit ch Q (cfs) old for each dx
+	    real,allocatable    :: old_q_ch_out(:,:)    !model unit ch Q (cfs) old for each dx
+	    real,allocatable    :: old_q_res(:,:)   !model unit ch Q (cfs) old for each dx at last time step
+	    real,allocatable    :: old_q_ch_in_res(:,:) !model unit ch Q (cfs) old for each dx at last time step
+	    real,allocatable    :: old_q_ch_out_res(:,:) !model unit ch Q (cfs) old for each dx at last time step
+	    real,allocatable    :: qlat_ch_old(:)   !old lateral flow into channel (cfs/ft)
 
       !Plane parameters
-  	  real(kind=JPRM),allocatable    :: length_p(:)      !down slope plane length (ft)
-  	  real(kind=JPRM),allocatable    :: slope_p(:)       !down slope plane  ft/ft)
-  	  real(kind=JPRM),allocatable    :: ksurf(:)         !surface roughness
+  	  real,allocatable    :: length_p(:)      !down slope plane length (ft)
+  	  real,allocatable    :: slope_p(:)       !down slope plane  ft/ft)
+  	  real,allocatable    :: ksurf(:)         !surface roughness
 
-  	  real(kind=JPRM),allocatable    :: alp_pl_s(:)      !surface runoff alpha; y=alha*q^beta
-  	  real(kind=JPRM),allocatable    :: bet_pl_s(:)      !surface runoff beat; y=alha*q^beta
+  	  real,allocatable    :: alp_pl_s(:)      !surface runoff alpha; y=alha*q^beta
+  	  real,allocatable    :: bet_pl_s(:)      !surface runoff beat; y=alha*q^beta
 
-  	  real(kind=JPRM),allocatable    :: y_pl_s(:,:)      !surface runoff depth (ft)
-  	  real(kind=JPRM),allocatable    :: q_pl_s(:,:)      !surface runoff (cfs/ft of channel)
+  	  real,allocatable    :: y_pl_s(:,:)      !surface runoff depth (ft)
+  	  real,allocatable    :: q_pl_s(:,:)      !surface runoff (cfs/ft of channel)
 
-  	  real(kind=JPRM),allocatable    :: qlat_s_old(:)    !old lateral flow into surface runoff (ft/s)
+  	  real,allocatable    :: qlat_s_old(:)    !old lateral flow into surface runoff (ft/s)
 
         !Misc. parameters
         integer j, t, k, tt, ii, krec     !counters
@@ -79,20 +77,20 @@ module variables
         real    leapyrft,leapyrdiff
 
         !Channel Paramters
-        real(kind=JPRM) Qr_ref                 !Q reference split for q_bank between ch and fp
-        real(kind=JPRM) C1, y, Ax, celert, sreach, tv, c, d, cdenom   !MC channel parameters
-        real(kind=JPRM) qlat_ch, qlat_ch_ave   !combined lateral inflow (qs + qss from both planes) to a channel (cfs/ft)
+        real Qr_ref                 !Q reference split for q_bank between ch and fp
+        real C1, y, Ax, celert, sreach, tv, c, d, cdenom   !MC channel parameters
+        real qlat_ch, qlat_ch_ave   !combined lateral inflow (qs + qss from both planes) to a channel (cfs/ft)
 
         !plane parameters
-        real(kind=JPRM) eps                !min error for accepting surface_kwave routing solution
+        real eps                !min error for accepting surface_kwave routing solution
 
         !Uniform adjustment factors
-        real(kind=JPRM) n_ch_all          ! Manning's n, uniform value for all channels
-        real(kind=JPRM) ks_all            ! surface runoughness, uniform value for all planes
-        real(kind=JPRM) qlat_all          ! parameter  adjusting qlat
-        real(kind=JPRM) n_ch_min, n_ch_max
-        real(kind=JPRM) Lch_min_slope, Lch_max_slope
-        real(kind=JPRM) setfsub_rate
+        real n_ch_all          ! Manning's n, uniform value for all channels
+        real ks_all            ! surface runoughness, uniform value for all planes
+        real qlat_all          ! parameter  adjusting qlat
+        real n_ch_min, n_ch_max
+        real Lch_min_slope, Lch_max_slope
+        real setfsub_rate
 
 contains
 

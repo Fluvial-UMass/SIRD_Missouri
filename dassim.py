@@ -49,7 +49,7 @@ class DA_pyHRR(object):
                                          use_cache=True)
         self.spinupPath = os.path.join(self.rootDir,
                                        self.oDir,
-                                       "00/restart.txt")
+                                       "00/restart.bin")
         self.nCpus = int(self.initFile.get("model", "nCpus"))
         # initialize pyletkf
         self.daCore.initialize(backend="pickle")
@@ -79,7 +79,7 @@ class DA_pyHRR(object):
             os.makedirs(storageDir)
         out, nDate = model.main_day(sDate,
                                     flag="initial",
-                                    restart="restart.txt",
+                                    restart="restart.bin",
                                     runoffDir=runoffDir,
                                     outDir=storageDir)
         date = nDate
@@ -88,13 +88,13 @@ class DA_pyHRR(object):
             print(date)
             out, nDate = model.main_day(date,
                                         flag="restart",
-                                        restart="restart.txt",
+                                        restart="restart.bin",
                                         runoffDir=runoffDir,
                                         outDir=storageDir)
             date = nDate
         print("end spinup")
 
-        return os.path.join(storageDir, "restart.txt")
+        return os.path.join(storageDir, "restart.bin")
 
     def startFromInit(self, sDate, eDate,
                       spinup=False, sDate_spin=None, eDate_spin=None,
@@ -147,9 +147,11 @@ class DA_pyHRR(object):
         # assimilation if applicable
         if (date == self.assimDates).any():
             xa = self.dataAssim(date, self.obsDf, self.eTot)
+            stime = time.time()
             assimOut_parallel(xa[:, :, self.outReachIdx], date, self.model,
                               self.cfs2cms, self.oNameAssim,
                               self.eTot, ncpus=self.nCpus)
+            print("output:", time.time()-stime)
         if date.month == 12 and date.day == 31:
             self.backupRestart(date)
 
@@ -168,19 +170,21 @@ class DA_pyHRR(object):
             runoffDir = self.runoffDir.format(eNum)
             df, nDate = model.main_day(sDate,
                                        flag="restart",
-                                       restart="restart.txt",
+                                       restart="restart.bin",
                                        runoffDir=runoffDir,
                                        outDir=outDir)
             subprocess.check_call(["cp",
                                    restartFile,
                                    os.path.join(outDir,
-                                                "restartAssim.txt")])
+                                                "restartAssim.bin")])
             model.output(df, self.oName.format(eNum), mode="w")
             model.output(df, self.oNameAssim.format(eNum), mode="w")
         print("end initializing")
         return nDate
 
     def dataAssim(self, date, obsDf, eTot, cache=False, limitval=1e+6):
+        print("assim")
+        stime = time.time()
         obsMean, obsStd = self.__constObs(obsDf, date)
         self.restarts = []
         # take logs
@@ -192,6 +196,8 @@ class DA_pyHRR(object):
         dschg_cfs_ens = np.where(dschg_cfs_ens == 0, 1e-8, dschg_cfs_ens)
         dschg_cfs_ens = np.log(dschg_cfs_ens)
         obsvars = [1]
+        print("preprocessing:", time.time()-stime)
+        stime = time.time()
         # As an API requirements,
         # the input simulation array should be (nvars, eTot, nT, nReach)
         xa, Ws = self.daCore.letkf_vector(dschg_cfs_ens,
@@ -199,6 +205,8 @@ class DA_pyHRR(object):
                                           obsStd.astype(np.float64),
                                           obsvars,
                                           nCPUs=self.nCpus)
+        print("assimilation:", time.time()-stime)
+        stime = time.time()
         xa = xa[0, :, :, :]
         if cache:
             outname = date.strftime("%Y%m%d%h_Ws.pkl")
@@ -208,9 +216,12 @@ class DA_pyHRR(object):
         # limiter: to avoid diversion.
         xa[xa > np.log(limitval)] = dschg_cfs_ens[0][xa > np.log(limitval)]
         xa = np.exp(xa)  # convert from log
+        print("postprocessing:", time.time()-stime)
+        stime = time.time()
         updateChannel_parallel(xa, self.ndx, self.upas,
                                self.nReach, self.restarts,
-                               self.oDir, eTot, ncpus=self.nCpus)
+                               eTot, ncpus=self.nCpus)
+        print("updateChannel:", time.time()-stime)
         return xa
 
     def take_nLog(self, array):
@@ -223,10 +234,11 @@ class DA_pyHRR(object):
         return outArray
 
     def __readRestart(self, eNum):
-        dfPath = os.path.join(self.oDir.format(eNum), "restartAssim.txt")
-        edf = pd.read_csv(dfPath)
-        self.restarts.append(edf)
-        old_qs = (edf.groupby("i").max())["old_q"].values  # cfs
+        restPath = os.path.join(self.oDir.format(eNum), "restartAssim.bin")
+        rest = np.memmap(restPath, mode="r+",
+                         shape=(4, self.ndx, self.nReach), dtype=np.float32)
+        self.restarts.append(rest)
+        old_qs = rest[0, -1, :].copy()  # cfs
         return old_qs.reshape(1, -1)
 
     def __constObs(self, obsDf, date):
@@ -265,11 +277,11 @@ class DA_pyHRR(object):
     def backupRestart(self, date):
         for eNum in range(self.eTot):
             restFile = os.path.join(self.oDir.format(eNum),
-                                    "restart.txt")
+                                    "restart.bin")
             outRestFile = restFile + ".{0}".format(date.strftime("%Y%m%d"))
             restAssimFile = os.path.join(self.rootDir,
                                          self.oDir.format(eNum),
-                                         "restartAssim.txt")
+                                         "restartAssim.bin")
             outRestAssimFile = restAssimFile + \
                 ".{0}".format(date.strftime("%Y%m%d"))
             subprocess.call(["cp", restFile, outRestFile])
@@ -301,12 +313,12 @@ def simulation_core(argList):
     oNameAssim = argList[6].format(eNum)
     # df, nDate = model.main_day(date,
     #                            flag="restart",
-    #                            restart="restart.txt",
+    #                            restart="restart.bin",
     #                            runoffDir=runoffDir,
     #                            outDir=outDir)
     adf, nDate = model.main_day(date,
                                 flag="restart",
-                                restart="restartAssim.txt",
+                                restart="restartAssim.bin",
                                 runoffDir=runoffDir,
                                 outDir=outDir)
     # model.output(df, oName, mode="a")
@@ -332,30 +344,26 @@ def simulation_parallel(date, eTot, model,
 
 
 def updateChannel(argsList):
-    aArray1d = argsList[0]
+    aArray1d = argsList[0].astype(np.float32)
     ndx = argsList[1]
-    upas = argsList[2]
+    upas = argsList[2].astype(np.int32)
     nReach = argsList[3]
-    resDf = argsList[4]
-    oDir = argsList[5]
-    eNum = argsList[6]
+    rest = argsList[4]
     # [1,2,3,4] => [1,1,1,...,1,2,2,2,...,2,...]
-    update_qs = np.repeat(aArray1d, ndx)
+    update_qs = np.repeat(aArray1d, ndx).reshape(nReach, ndx).T
     update_qin, update_qout = \
-        daTools.updateQinout(aArray1d, upas, nReach, ndx)
-    resDf["old_q"] = update_qs
-    resDf["old_q_ch_in"] = update_qin
-    resDf["old_q_ch_out"] = update_qout
-    resOut = os.path.join(oDir.format(eNum), "restartAssim.txt")
-    resDf.to_csv(resOut, index=False)
+        daTools.updateQinout_pa(aArray1d, upas, nReach, ndx)
+    rest[0, :, :] = update_qs
+    rest[1, :, :] = update_qin
+    rest[2, :, :] = update_qout
+    del rest
 
 
 def updateChannel_parallel(xa, ndx, upas,
                            nReach, restarts,
-                           oDir, eTot, ncpus=2):
+                           eTot, ncpus=2):
     args = [[xa[eNum, -1, :], ndx, upas,
-             nReach, restarts[eNum],
-             oDir, eNum] for eNum in range(eTot)]
+             nReach, restarts[eNum]] for eNum in range(eTot)]
     for i in range(eTot):
         updateChannel(args[i])
     # pool = Pool(processes=ncpus)
@@ -403,7 +411,7 @@ if __name__ == "__main__":
                         help="end date in YYYYMMDD")
     parser.add_argument("--restart", action="store_true",
                         default=False,
-                        help="restarting from existing restart.txt?")
+                        help="restarting from existing restart.bin?")
     parser.add_argument("--spdays", type=int, default=5,
                         help="days for spinup")
     parser.add_argument("-v", "--verbose", default=False,
