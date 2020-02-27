@@ -42,18 +42,19 @@ subroutine inputdata2(mode)
         character(120):: fname3,fname4,mode,restart
         real    Lch_min, setfsub, qperdx, qtop, cbar
         integer :: ji,ki
+        real(kind=JPRM),allocatable :: qlat_ch_old_2d(:,:)
+        allocate (qlat_ch_old_2d(1:pfafunits,1:ndx))
 
         if (mode.eq.'restart') then
             restart = trim(outDir)//'/'//trim(restartFile)
             !write(*,*) "restart from:",restart
-            open(150,file=restart,status='old',action="read")
-                read(150,'()')
-                do j=1, pfafunits
-                    do k=1, ndx
-                        read(150,*) ji,ki,old_q_res(j,k),old_q_ch_in_res(j,k),old_q_ch_out_res(j,k),qlat_ch_old(j)
-                    enddo
-                enddo
+            open(150,file=restart,form='unformatted',access='direct', recl=4*pfafunits*ndx)
+            read(150,rec=1) old_q_res(:,:)
+            read(150,rec=2) old_q_ch_in_res(:,:)
+            read(150,rec=3) old_q_ch_out_res(:,:)
+            read(150,rec=4) qlat_ch_old_2d(:, :)
             close(150)
+            qlat_ch_old(:) = qlat_ch_old_2d(:, 1)
         endif
 
         fname3 = trim(planesFile)

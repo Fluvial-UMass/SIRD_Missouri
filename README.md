@@ -18,7 +18,7 @@ Run a new simulation:
 ```bash
 python dassim.py -c [configuration file] -s [start date] -e [end date]  
 ```
-Run a simulation from existing restart file (restart.txt/restartAssim.txt in your output directory):  
+Run a simulation from an existing restart file (restart.txt/restartAssim.txt in your output directory):  
 ```bash
 python dassim.py -c [configuration file] -s [start date] -e [end date] --restart
 ```

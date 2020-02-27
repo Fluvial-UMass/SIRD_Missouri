@@ -6,3 +6,4 @@ hillslope_src/*.txt
 *.so
 hillslope_src/run
 __pycache__
+hillslope_src/binaryio/run
