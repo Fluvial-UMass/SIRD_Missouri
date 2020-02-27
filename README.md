@@ -26,3 +26,8 @@ Show help:
 ```bash
 python dassim.py -h
 ```
+
+### Change Log  
+2020/02/26  
+- Code was cleaned for an easier use.  
+- Binary restart files IO was supported in HRR code. Now pyHRR is 3.5 ~ 4.0 times faster than before.  
