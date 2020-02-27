@@ -335,11 +335,11 @@ def simulation_parallel(date, eTot, model,
     for i in range(eTot):
         out = simulation_core(args[i])
         results.append(out)
-    # pool = Pool(processes=ncpus)
-    # results = pool.map(simulation_core, args)
-    # pool.close()
-    # pool.join()
-    # return results[0]
+    pool = Pool(processes=ncpus)
+    results = pool.map(simulation_core, args)
+    pool.close()
+    pool.join()
+    return results[0]
     return results
 
 
@@ -366,10 +366,10 @@ def updateChannel_parallel(xa, ndx, upas,
              nReach, restarts[eNum]] for eNum in range(eTot)]
     for i in range(eTot):
         updateChannel(args[i])
-    # pool = Pool(processes=ncpus)
-    # pool.map(updateChannel, args)
-    # pool.close()
-    # pool.join()
+    pool = Pool(processes=ncpus)
+    pool.map(updateChannel, args)
+    pool.close()
+    pool.join()
 
 
 def assimOut(argsList):
@@ -379,7 +379,7 @@ def assimOut(argsList):
     modelInstance = argsList[3]
     cfs2cms = argsList[4]
     oNameAssim = argsList[5]
-    df = pd.DataFrame(xa_each).apply(cfs2cms, axis=1)
+    df = pd.DataFrame(np.vectorize(cfs2cms)(xa_each))
     df = df.T
     df.index = [date]
     df.reset_index().rename({"index": "Date"}, axis=1).set_index("Date")
@@ -390,12 +390,10 @@ def assimOut_parallel(xa, date, modelInstance,
                       cfs2cms, oNameAssim, eTot, ncpus=2):
     args = [[xa[eNum, -1], eNum, date, modelInstance,
              cfs2cms, oNameAssim] for eNum in range(eTot)]
-    for i in range(eTot):
-        assimOut(args[i])
-    # pool = Pool(processes=ncpus)
-    # pool.map(assimOut, args)
-    # pool.close()
-    # pool.join()
+    pool = Pool(processes=ncpus)
+    pool.map(assimOut, args)
+    pool.close()
+    pool.join()
 
 
 if __name__ == "__main__":
