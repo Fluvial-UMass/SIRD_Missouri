@@ -33,7 +33,7 @@ python dassim.py -h
 
 ### Change Log  
 2020/02/27
-- restarting IO scheme was updated in dassim.py. Native Numpy memory mapping was used for efficiency. Now 1,000 times faster than before.
+- restarting IO scheme was updated in dassim.py. Native Numpy memory mapping was used for an efficiency. Now 1,000 times faster than before.
 - Overall computational efficiency was improved by 40 times. (e.g., for 30K reaches, total calc. time for the assimilation case is less than a hour with 20 cores)  
   
 2020/02/26  
