@@ -32,9 +32,14 @@ python dassim.py -h
 ```
 
 ### Change Log  
+2020/03/02  
+- data assimilation IO was updated. now it outputs reaches only in output_calibration.txt  
+- add functions to read output_calibration.txt  
+- add analysis/ensmean.py  
+  
 2020/02/27
-- restarting IO scheme was updated in dassim.py. Native Numpy memory mapping was used for an efficiency. Now 1,000 times faster than before.
-- Overall computational efficiency was improved by 40 times. (e.g., for 30K reaches, total calc. time for the assimilation case is less than two hours with 20 cores)  
+- restarting IO scheme was updated in dassim.py. Native Numpy memory mapping was used for an efficiency. Now 1,000 times faster than before for this part.
+- Overall computational efficiency was improved by more than 10 times. (e.g., for 30K reaches, total calc. time for the 10-year assimilation case is less than three hours with 20 cores)  
   
 2020/02/26  
 - Code was cleaned for an easier use.  

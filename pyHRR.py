@@ -135,7 +135,7 @@ class HRR(object):
             lines = f.readlines()
             numout = int(lines[0])
             outids = []
-            for i in range(1, numout):
+            for i in range(1, numout+1):
                 outids.append(int(lines[i].split()[0]))
         return np.array(outids)
 
@@ -157,4 +157,4 @@ if __name__ == "__main__":
             test.main_day(date, flag="restart", restart="restart.bin",
                           runoffDir="../data/runoff/meritvic_shyears/corrected/00")
         test.output(df, "test.csv", mode="a")
-    print("elapsed:",time.time()-stime)
+    print("elapsed:", time.time()-stime)

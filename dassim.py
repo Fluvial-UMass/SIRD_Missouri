@@ -10,7 +10,6 @@ from multiprocessing import Pool
 import pyletkf
 import pyHRR as pyHRR
 import daTools
-import time
 
 
 class DA_pyHRR(object):
@@ -147,11 +146,9 @@ class DA_pyHRR(object):
         # assimilation if applicable
         if (date == self.assimDates).any():
             xa = self.dataAssim(date, self.obsDf, self.eTot)
-            stime = time.time()
             assimOut_parallel(xa[:, :, self.outReachIdx], date, self.model,
                               self.cfs2cms, self.oNameAssim,
                               self.eTot, ncpus=self.nCpus)
-            print("output:", time.time()-stime)
         if date.month == 12 and date.day == 31:
             self.backupRestart(date)
 
@@ -182,31 +179,26 @@ class DA_pyHRR(object):
         print("end initializing")
         return nDate
 
-    def dataAssim(self, date, obsDf, eTot, cache=False, limitval=1e+6):
-        print("assim")
-        stime = time.time()
+    def dataAssim(self, date, obsDf, eTot, cache=False, limitval=1e+10):
         obsMean, obsStd = self.__constObs(obsDf, date)
         self.restarts = []
         # take logs
         dschg_cfs_ens = \
-            np.concatenate([self.__readRestart(eNum)
+            np.concatenate([self.__readRestart(eNum, "restartAssim.bin")
                             for eNum in range(eTot)], axis=0)
         dschg_cfs_ens = \
             dschg_cfs_ens.astype(np.float64).reshape(1, eTot, 1, self.nReach)
         dschg_cfs_ens = np.where(dschg_cfs_ens == 0, 1e-8, dschg_cfs_ens)
         dschg_cfs_ens = np.log(dschg_cfs_ens)
         obsvars = [1]
-        print("preprocessing:", time.time()-stime)
-        stime = time.time()
         # As an API requirements,
         # the input simulation array should be (nvars, eTot, nT, nReach)
         xa, Ws = self.daCore.letkf_vector(dschg_cfs_ens,
                                           obsMean,
                                           obsStd.astype(np.float64),
                                           obsvars,
+                                          guess="prior",
                                           nCPUs=self.nCpus)
-        print("assimilation:", time.time()-stime)
-        stime = time.time()
         xa = xa[0, :, :, :]
         if cache:
             outname = date.strftime("%Y%m%d%h_Ws.pkl")
@@ -216,12 +208,9 @@ class DA_pyHRR(object):
         # limiter: to avoid diversion.
         xa[xa > np.log(limitval)] = dschg_cfs_ens[0][xa > np.log(limitval)]
         xa = np.exp(xa)  # convert from log
-        print("postprocessing:", time.time()-stime)
-        stime = time.time()
         updateChannel_parallel(xa, self.ndx, self.upas,
                                self.nReach, self.restarts,
                                eTot, ncpus=self.nCpus)
-        print("updateChannel:", time.time()-stime)
         return xa
 
     def take_nLog(self, array):
@@ -233,8 +222,8 @@ class DA_pyHRR(object):
         outArray[np.where(array == self.daCore.undef)] = self.daCore.undef
         return outArray
 
-    def __readRestart(self, eNum):
-        restPath = os.path.join(self.oDir.format(eNum), "restartAssim.bin")
+    def __readRestart(self, eNum, restartFile):
+        restPath = os.path.join(self.oDir.format(eNum), restartFile)
         rest = np.memmap(restPath, mode="r+",
                          shape=(4, self.ndx, self.nReach), dtype=np.float32)
         self.restarts.append(rest)
@@ -311,36 +300,32 @@ def simulation_core(argList):
     outDir = os.path.join(argList[4].format(eNum))
     oName = argList[5].format(eNum)
     oNameAssim = argList[6].format(eNum)
-    # df, nDate = model.main_day(date,
-    #                            flag="restart",
-    #                            restart="restart.bin",
-    #                            runoffDir=runoffDir,
-    #                            outDir=outDir)
+    df, nDate = model.main_day(date,
+                               flag="restart",
+                               restart="restart.bin",
+                               runoffDir=runoffDir,
+                               outDir=outDir)
     adf, nDate = model.main_day(date,
                                 flag="restart",
                                 restart="restartAssim.bin",
                                 runoffDir=runoffDir,
                                 outDir=outDir)
-    # model.output(df, oName, mode="a")
+    model.output(df, oName, mode="a")
     model.output(adf, oNameAssim, mode="a")
     return nDate
 
 
 def simulation_parallel(date, eTot, model,
                         runoffRoot, outRoot, oName,
-                        oNameAssim, ncpus=2):
+                        oNameAssim, ncpus=20):
     args = [[date, eNum, model, runoffRoot, outRoot, oName, oNameAssim]
             for eNum in range(eTot)]
     results = []
-    for i in range(eTot):
-        out = simulation_core(args[i])
-        results.append(out)
     pool = Pool(processes=ncpus)
     results = pool.map(simulation_core, args)
     pool.close()
     pool.join()
     return results[0]
-    return results
 
 
 def updateChannel(argsList):
@@ -361,15 +346,16 @@ def updateChannel(argsList):
 
 def updateChannel_parallel(xa, ndx, upas,
                            nReach, restarts,
-                           eTot, ncpus=2):
+                           eTot, ncpus=20):
     args = [[xa[eNum, -1, :], ndx, upas,
              nReach, restarts[eNum]] for eNum in range(eTot)]
     for i in range(eTot):
         updateChannel(args[i])
-    pool = Pool(processes=ncpus)
-    pool.map(updateChannel, args)
-    pool.close()
-    pool.join()
+    # slow due to IO conflict?
+    # pool = Pool(processes=ncpus)
+    # pool.map(updateChannel, args)
+    # pool.close()
+    # pool.join()
 
 
 def assimOut(argsList):
@@ -387,13 +373,16 @@ def assimOut(argsList):
 
 
 def assimOut_parallel(xa, date, modelInstance,
-                      cfs2cms, oNameAssim, eTot, ncpus=2):
+                      cfs2cms, oNameAssim, eTot, ncpus=20):
     args = [[xa[eNum, -1], eNum, date, modelInstance,
              cfs2cms, oNameAssim] for eNum in range(eTot)]
-    pool = Pool(processes=ncpus)
-    pool.map(assimOut, args)
-    pool.close()
-    pool.join()
+    for i in range(eTot):
+        assimOut(args[i])
+    # slow due to IO conflict?
+    # pool = Pool(processes=ncpus)
+    # pool.map(assimOut, args)
+    # pool.close()
+    # pool.join()
 
 
 if __name__ == "__main__":
