@@ -278,7 +278,7 @@ class DA_pyHRR(object):
 
     def submit(self, sdate, edate, restart, days_spinup=5, verbose=False):
         if restart:
-            self.restart(sdate, edate, verbose)
+            self.restartFromRecent(sdate, edate, verbose)
         else:
             sDate_spin = sdate
             eDate_spin = sdate + datetime.timedelta(days=days_spinup)
