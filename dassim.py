@@ -243,8 +243,6 @@ class DA_pyHRR(object):
         obsConfLow = self.take_nLog(self.cms2cfs(obs["conf.low"].values))
         obsConfUpp = self.take_nLog(self.cms2cfs(obs["conf.high"].values))
         obsStd[reaches] = infl*(obsConfUpp - obsConfLow) / (2*1.96)
-        print(obsMean[reaches])
-        print(obsStd[reaches])
         obsMean = obsMean.reshape(1, -1)
         obsStd = obsStd.reshape(1, -1)
         return obsMean, obsStd
