@@ -51,7 +51,7 @@ class DA_pyHRR(object):
                                        "00/restart.bin")
         self.nCpus = int(self.initFile.get("model", "nCpus"))
         # initialize pyletkf
-        self.daCore.initialize(backend="pickle")
+        self.daCore.initialize(backend="h5py")
         # initialize pyHRR
         self.model = pyHRR.HRR(config, compile_=self.compile_)
         self.outReachID = self.model.read_OutID()  # HRRID
@@ -230,7 +230,7 @@ class DA_pyHRR(object):
         old_qs = rest[0, -1, :].copy()  # cfs
         return old_qs.reshape(1, -1)
 
-    def __constObs(self, obsDf, date):
+    def __constObs(self, obsDf, date, infl=10):
 
         obs = obsDf[obsDf.index == date]
         # python index starts from 0
@@ -242,8 +242,9 @@ class DA_pyHRR(object):
         obsMean[reaches] = self.take_nLog(self.cms2cfs(obs["mean"].values))
         obsConfLow = self.take_nLog(self.cms2cfs(obs["conf.low"].values))
         obsConfUpp = self.take_nLog(self.cms2cfs(obs["conf.high"].values))
-        obsStd[reaches] = (obsConfUpp - obsConfLow) / (2*1.96)
-
+        obsStd[reaches] = infl*(obsConfUpp - obsConfLow) / (2*1.96)
+        print(obsMean[reaches])
+        print(obsStd[reaches])
         obsMean = obsMean.reshape(1, -1)
         obsStd = obsStd.reshape(1, -1)
         return obsMean, obsStd
@@ -278,7 +279,7 @@ class DA_pyHRR(object):
 
     def submit(self, sdate, edate, restart, days_spinup=5, verbose=False):
         if restart:
-            self.restart(sdate, edate, verbose)
+            self.restartFromRecent(sdate, edate, verbose)
         else:
             sDate_spin = sdate
             eDate_spin = sdate + datetime.timedelta(days=days_spinup)

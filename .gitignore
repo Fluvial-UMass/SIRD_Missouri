@@ -7,3 +7,6 @@ hillslope_src/*.txt
 hillslope_src/run
 __pycache__
 hillslope_src/binaryio/run
+analysis/*.csv
+analysis/*.tsv
+analysis/stats/

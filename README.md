@@ -5,6 +5,7 @@
 - [pyletkf](https://github.com/windsor718/pyletkf)  
 - numpy  
 - pandas  
+- xarray (optional)  
 
 ## Quick start  
 ### Before you run a simulation  
