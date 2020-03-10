@@ -51,7 +51,7 @@ class DA_pyHRR(object):
                                        "00/restart.bin")
         self.nCpus = int(self.initFile.get("model", "nCpus"))
         # initialize pyletkf
-        self.daCore.initialize(backend="h5py")
+        self.daCore.initialize(backend="pickle")
         # initialize pyHRR
         self.model = pyHRR.HRR(config, compile_=self.compile_)
         self.outReachID = self.model.read_OutID()  # HRRID
@@ -225,7 +225,7 @@ class DA_pyHRR(object):
     def __readRestart(self, eNum, restartFile):
         restPath = os.path.join(self.oDir.format(eNum), restartFile)
         rest = np.memmap(restPath, mode="r+",
-                         shape=(4, self.ndx, self.nReach), dtype=np.float32)
+                         shape=(7, self.ndx, self.nReach), dtype=np.float32)
         self.restarts.append(rest)
         old_qs = rest[0, -1, :].copy()  # cfs
         return old_qs.reshape(1, -1)
