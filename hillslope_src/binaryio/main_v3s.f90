@@ -49,17 +49,23 @@ program PFAF_Model
         call rivers(1,pfafunits)
 
         !Write out hydrographs at select nodes: cfs at each DT
-        do i=1, numout
+        ! do i=1, numout
+        !     !for daily output
+        !     old_q_day(idout(i)) = old_q_day(idout(i)) + old_q(idout(i),ndx)
+        ! enddo
+        do i=1, pfafunits
             !for daily output
-            old_q_day(idout(i)) = old_q_day(idout(i)) + old_q(idout(i),ndx)
+            old_q_day(i) = old_q_day(i) + old_q(i,ndx)
         enddo
 
         if(tt.eq.24)then
             !for daily output
-            do i=1, numout
-                    old_q_day(idout(i)) = (old_q_day(idout(i))/24.)*0.3048**3
+            ! do i=1, numout
+            !         old_q_day(idout(i)) = (old_q_day(idout(i))/24.)*0.3048**3
+            ! enddo
+            do i=1, pfafunits
+                    old_q_day(i) = (old_q_day(i)/24.)*0.3048**3
             enddo
-
             tt = 0 !will be 1 after endif
             daynum = daynum+1
 
@@ -70,6 +76,7 @@ program PFAF_Model
             call resultsout()
             do i=1, numout
                 old_q_day(idout(i)) = 0.
+                ! old_q_day2(i) = 0.
             enddo
         endif
         tt = tt + 1 !hr counter

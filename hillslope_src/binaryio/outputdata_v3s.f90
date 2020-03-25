@@ -35,8 +35,8 @@ subroutine resultsout()
     FMT = "(00000F15.3)"
     write(FMT(2:6),'(i5.5)') numout
     write(12,FMT) (old_q_day(idout(i)),i=1,numout)
-    close(12)    
-    
+    close(12)
+
     return
 end subroutine resultsout
 
@@ -44,12 +44,15 @@ subroutine restartout()
     character(256) :: buf, resname
     real(kind=JPRM),allocatable :: qlat_ch_old_2d(:,:)
     real(kind=JPRM),allocatable :: qlat_s_old_2d(:,:)
+    real(kind=JPRM),allocatable :: old_q_day_2d(:,:)
     allocate (qlat_ch_old_2d(1:pfafunits,1:ndx))
     allocate (qlat_s_old_2d(1:pfafunits,1:ndx))
+    allocate (old_q_day_2d(1:pfafunits,1:ndx))
     !write restart file
     do i=1,pfafunits
         qlat_ch_old_2d(i,:) = qlat_ch_old(i)
         qlat_s_old_2d(i,:) = qlat_s_old(i)
+        old_q_day_2d(i,:) = old_q_day(i)/(0.3048**3)
     enddo
     resname = trim(outDir)//'/'//trim(restartFile)
     open(12,file=resname,form='unformatted',access='direct',recl=4*pfafunits*ndx)
@@ -60,6 +63,7 @@ subroutine restartout()
     write(12,rec=5) y_pl_s
     write(12,rec=6) q_pl_s(:,:)
     write(12,rec=7) qlat_s_old_2d(:,:)
+    write(12,rec=8) old_q_day_2d(:,:)
     close(12)
 
     return

@@ -145,7 +145,7 @@ if __name__ == "__main__":
     stime = time.time()
     test = HRR("./config/config_MERIT_cal10.ini")
     sdate = datetime.datetime(2002, 10, 1)
-    edate = datetime.datetime(2003, 10, 1)
+    edate = datetime.datetime(2002, 10, 2)
     df, ndate = \
         test.main_day(sdate, flag="initial", restart="restart.bin",
                       runoffDir="../data/runoff/meritvic_shyears/corrected/00")

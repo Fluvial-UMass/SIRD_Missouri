@@ -44,6 +44,7 @@ module variables
 	    real(kind=JPRM),allocatable    :: q_out_old(:)     !model unit ch Q (cfs) old out
 	    real(kind=JPRM),allocatable    :: old_q(:,:)       !model unit ch Q (cfs) old for each dx
 	    real(kind=JPRM),allocatable    :: old_q_day(:)     !model unit ch Q (cfs) for daily average
+      ! real(kind=JPRM),allocatable    :: old_q_day2(:)     !model unit ch Q (cfs) for daily average
 	    real(kind=JPRM),allocatable    :: old_q_ch_in(:,:)    !model unit ch Q (cfs) old for each dx
 	    real(kind=JPRM),allocatable    :: old_q_ch_out(:,:)    !model unit ch Q (cfs) old for each dx
 	    real(kind=JPRM),allocatable    :: old_q_res(:,:)   !model unit ch Q (cfs) old for each dx at last time step
@@ -138,6 +139,7 @@ subroutine allocatenow
         allocate        (old_q(1:pfafunits,1:ndx))
         allocate        (old_q_res(1:pfafunits,1:ndx))
         allocate        (old_q_day(1:pfafunits))
+        ! allocate        (old_q_day2(1:pfafunits))
         allocate        (old_q_ch_in(1:pfafunits,1:ndx))
         allocate        (old_q_ch_in_res(1:pfafunits,1:ndx))
         allocate        (old_q_ch_out(1:pfafunits,1:ndx))
@@ -193,6 +195,7 @@ subroutine setzero()
                 q_in(j) = 0.
                 q_out(j) = 0.
                 old_q_day(j)=0.
+                ! old_q_day2(j)=0.
 
                 do k = 1,ndx
                     y_pl_s(j,k)=0.
@@ -247,6 +250,7 @@ subroutine deallocatenow()
         deallocate      (q_out_old)
         deallocate      (old_q)
         deallocate      (old_q_day)
+        ! deallocate      (old_q_day2)
         deallocate      (old_q_ch_in)
         deallocate      (old_q_ch_out)
 

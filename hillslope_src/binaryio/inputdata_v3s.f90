@@ -44,8 +44,10 @@ subroutine inputdata2(mode)
         integer :: ji,ki
         real(kind=JPRM),allocatable :: qlat_ch_old_2d(:,:)
         real(kind=JPRM),allocatable :: qlat_s_old_2d(:,:)
+        real(kind=JPRM),allocatable :: dummy(:,:)
         allocate (qlat_ch_old_2d(1:pfafunits,1:ndx))
         allocate (qlat_s_old_2d(1:pfafunits,1:ndx))
+        allocate (dummy(1:pfafunits,1:ndx))
 
 
         if (mode.eq.'restart') then
@@ -59,6 +61,7 @@ subroutine inputdata2(mode)
             read(150,rec=5) y_pl_s(:,:)
             read(150,rec=6) q_pl_s(:,:)
             read(150,rec=7) qlat_s_old_2d(:,:)
+            read(150,rec=8) dummy(:,:)
             close(150)
             qlat_ch_old(:) = qlat_ch_old_2d(:, 1)
             qlat_s_old(:) = qlat_ch_old_2d(:,1)
@@ -105,7 +108,7 @@ subroutine inputdata2(mode)
 
             !channel setting
             if(n_ch_all.ne.1.0) n_ch(j)=n_ch_all*n_ch(j)
-            
+
             length_ch(j) = length_ch(j)*1000./0.3048 !km to ft
             width_ch(j) = width_ch(j)/0.3048 !m to ft
             Qr_ch(j) = Qr_ch(j)/(0.3048**3) !cms to cfs

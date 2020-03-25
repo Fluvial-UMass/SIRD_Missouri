@@ -179,7 +179,7 @@ class DA_pyHRR(object):
         print("end initializing")
         return nDate
 
-    def dataAssim(self, date, obsDf, eTot, cache=False, limitval=1e+10):
+    def dataAssim(self, date, obsDf, eTot, cache=True, limitval=1e+10):
         obsMean, obsStd = self.__constObs(obsDf, date)
         self.restarts = []
         # take logs
@@ -200,13 +200,17 @@ class DA_pyHRR(object):
                                           guess="prior",
                                           nCPUs=self.nCpus)
         xa = xa[0, :, :, :]
+        print(Ws)
         if cache:
             outname = date.strftime("%Y%m%d%h_Ws.pkl")
             outPath = os.path.join(self.assimCacheDir, outname)
             with open(outPath, "wb") as f:
                 pickle.dump(Ws, f)
         # limiter: to avoid diversion.
+        print(np.exp(dschg_cfs_ens[0,:,-1,23916]))
+        print(np.exp(xa[:,-1,23916]))
         xa[xa > np.log(limitval)] = dschg_cfs_ens[0][xa > np.log(limitval)]
+        print(np.exp(xa[:,-1,23916]))
         xa = np.exp(xa)  # convert from log
         updateChannel_parallel(xa, self.ndx, self.upas,
                                self.nReach, self.restarts,
@@ -225,9 +229,9 @@ class DA_pyHRR(object):
     def __readRestart(self, eNum, restartFile):
         restPath = os.path.join(self.oDir.format(eNum), restartFile)
         rest = np.memmap(restPath, mode="r+",
-                         shape=(7, self.ndx, self.nReach), dtype=np.float32)
+                         shape=(8, self.ndx, self.nReach), dtype=np.float32)
         self.restarts.append(rest)
-        old_qs = rest[0, -1, :].copy()  # cfs
+        old_qs = rest[-1, -1, :].copy()  # cfs
         return old_qs.reshape(1, -1)
 
     def __constObs(self, obsDf, date, infl=10):
