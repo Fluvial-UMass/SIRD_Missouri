@@ -65,6 +65,8 @@ program PFAF_Model
             ! enddo
             do i=1, pfafunits
                     old_q_day(i) = (old_q_day(i)/24.)*0.3048**3
+                    if(old_q_day(i).ge.1000000000000.0) write(*,*) i, &
+                      iyear, imonth, iday, old_q_day(i)
             enddo
             tt = 0 !will be 1 after endif
             daynum = daynum+1
@@ -74,9 +76,11 @@ program PFAF_Model
             !endif
             call restartout()
             call resultsout()
-            do i=1, numout
-                old_q_day(idout(i)) = 0.
-                ! old_q_day2(i) = 0.
+            ! do i=1, numout
+            !     old_q_day(idout(i)) = 0.
+            ! enddo
+            do i=1, pfafunits
+                old_q_day(i) = 0.
             enddo
         endif
         tt = tt + 1 !hr counter

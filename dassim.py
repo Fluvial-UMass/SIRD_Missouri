@@ -51,7 +51,7 @@ class DA_pyHRR(object):
                                        "00/restart.bin")
         self.nCpus = int(self.initFile.get("model", "nCpus"))
         # initialize pyletkf
-        self.daCore.initialize(backend="pickle")
+        self.daCore.initialize(backend="h5py")
         # initialize pyHRR
         self.model = pyHRR.HRR(config, compile_=self.compile_)
         self.outReachID = self.model.read_OutID()  # HRRID
@@ -179,7 +179,7 @@ class DA_pyHRR(object):
         print("end initializing")
         return nDate
 
-    def dataAssim(self, date, obsDf, eTot, cache=True, limitval=1e+10):
+    def dataAssim(self, date, obsDf, eTot, cache=False):
         obsMean, obsStd = self.__constObs(obsDf, date)
         self.restarts = []
         # take logs
@@ -189,33 +189,31 @@ class DA_pyHRR(object):
         dschg_cfs_ens = \
             dschg_cfs_ens.astype(np.float64).reshape(1, eTot, 1, self.nReach)
         dschg_cfs_ens = np.where(dschg_cfs_ens == 0, 1e-8, dschg_cfs_ens)
-        dschg_cfs_ens = np.log(dschg_cfs_ens)
+        dschg_cfs_ens_log = np.log(dschg_cfs_ens)
         obsvars = [1]
         # As an API requirements,
         # the input simulation array should be (nvars, eTot, nT, nReach)
-        xa, Ws = self.daCore.letkf_vector(dschg_cfs_ens,
-                                          obsMean,
-                                          obsStd.astype(np.float64),
-                                          obsvars,
-                                          guess="prior",
-                                          nCPUs=self.nCpus)
-        xa = xa[0, :, :, :]
-        print(Ws)
+        xa_log, Ws = self.daCore.letkf_vector(dschg_cfs_ens_log,
+                                              obsMean,
+                                              obsStd.astype(np.float64),
+                                              obsvars,
+                                              guess="prior",
+                                              nCPUs=self.nCpus)
+        xa = np.exp(xa_log)
         if cache:
             outname = date.strftime("%Y%m%d%h_Ws.pkl")
             outPath = os.path.join(self.assimCacheDir, outname)
             with open(outPath, "wb") as f:
                 pickle.dump(Ws, f)
         # limiter: to avoid diversion.
-        print(np.exp(dschg_cfs_ens[0,:,-1,23916]))
-        print(np.exp(xa[:,-1,23916]))
-        xa[xa > np.log(limitval)] = dschg_cfs_ens[0][xa > np.log(limitval)]
-        print(np.exp(xa[:,-1,23916]))
-        xa = np.exp(xa)  # convert from log
-        updateChannel_parallel(xa, self.ndx, self.upas,
+        print(dschg_cfs_ens[0,:,-1,23916])
+        print(xa[0,:,-1,23916])
+        # xa[xa > np.log(limitval)] = dschg_cfs_ens[0][xa > np.log(limitval)]
+        innovation = xa[0] - dschg_cfs_ens[0]
+        updateChannel_parallel(innovation, self.ndx, self.upas,
                                self.nReach, self.restarts,
                                eTot, ncpus=self.nCpus)
-        return xa
+        return xa[0]
 
     def take_nLog(self, array):
         """
@@ -234,7 +232,7 @@ class DA_pyHRR(object):
         old_qs = rest[-1, -1, :].copy()  # cfs
         return old_qs.reshape(1, -1)
 
-    def __constObs(self, obsDf, date, infl=10):
+    def __constObs(self, obsDf, date, infl=1):
 
         obs = obsDf[obsDf.index == date]
         # python index starts from 0
@@ -246,7 +244,7 @@ class DA_pyHRR(object):
         obsMean[reaches] = self.take_nLog(self.cms2cfs(obs["mean"].values))
         obsConfLow = self.take_nLog(self.cms2cfs(obs["conf.low"].values))
         obsConfUpp = self.take_nLog(self.cms2cfs(obs["conf.high"].values))
-        obsStd[reaches] = infl*(obsConfUpp - obsConfLow) / (2*1.96)
+        obsStd[reaches] = infl*(obsConfUpp - obsConfLow) / (4*1.96)
         obsMean = obsMean.reshape(1, -1)
         obsStd = obsStd.reshape(1, -1)
         return obsMean, obsStd
@@ -338,12 +336,15 @@ def updateChannel(argsList):
     nReach = argsList[3]
     rest = argsList[4]
     # [1,2,3,4] => [1,1,1,...,1,2,2,2,...,2,...]
-    update_qs = np.repeat(aArray1d, ndx).reshape(nReach, ndx).T
-    update_qin, update_qout = \
-        daTools.updateQinout_pa(aArray1d, upas, nReach, ndx)
-    rest[0, :, :] = update_qs
-    rest[1, :, :] = update_qin
-    rest[2, :, :] = update_qout
+    update_innovation = np.repeat(aArray1d, ndx).reshape(nReach, ndx).T
+    # update_qin, update_qout = \
+    #     daTools.updateQinout_pa(aArray1d, upas, nReach, ndx)
+    # before = rest.copy()
+    rest[0, :, :] = rest[0, :, :] + update_innovation
+    rest[1, :, :] = rest[1, :, :] + update_innovation
+    rest[2, :, :] = rest[2, :, :] + update_innovation
+    # print(before[0, :, :].sum()!=rest[0, :, :].sum())
+    # assert before[0, :, :].sum()!=rest[0, :, :].sum(), "not updated"
     del rest
 
 
