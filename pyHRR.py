@@ -209,19 +209,19 @@ class HRR(object):
 if __name__ == "__main__":
     import time
     stime = time.time()
-    test = HRR("./config/config_Mackenzie_v2_case1.ini")
-    runoffdir = "/project/uma_colin_gleason/Dongmei/DataAssim/Mackenzie/data/case1/00"
-    sdate = datetime.datetime(1984, 10, 1)
-    edate = datetime.datetime(1984, 10, 5)
+    test = HRR("./config/config_MERIT_cal10_hdf5.ini")
+    runoffdir = "/project/uma_colin_gleason/yuta/ISRD/MSR/data/runoff/meritvic_shyears/corrected/00/"
+    sdate = datetime.datetime(2002, 10, 1)
+    edate = datetime.datetime(2003, 10, 1)
     df, ndate = \
         test.main_day(sdate, flag="initial", restart="restart.bin",
                       runoffDir=runoffdir)
-    test.output(df, "test.nc", mode="w")
+    test.output(df, "./out/test.nc", mode="w")
     date = ndate
     while date < edate:
         print(date)
         df, date = \
             test.main_day(date, flag="restart", restart="restart.bin",
                           runoffDir=runoffdir)
-        test.output(df, "test.nc", mode="a")
+        test.output(df, "./out/test.nc", mode="a")
     print("elapsed:", time.time()-stime)

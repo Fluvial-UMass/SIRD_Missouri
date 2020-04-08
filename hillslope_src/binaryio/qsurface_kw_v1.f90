@@ -92,7 +92,7 @@ subroutine qsurface(j,alp,bet)
   	    	aest=dtx*qe+alp*qe**bet
 !   adev is the difference between omega and qe
   	    	adev=asum-aest
-			
+!write(*,*) imax, 'imax'	,iter,'iter',j,iyear,imonth,iday		
 !   return if converged, with qe as the desired discharge...
   	    	if (abs(adev).le.error) go to 120
   	    	if (iter.ge.imax) then

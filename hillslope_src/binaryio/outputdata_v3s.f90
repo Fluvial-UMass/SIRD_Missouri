@@ -42,16 +42,19 @@ end subroutine resultsout
 
 subroutine restartout()
     character(256) :: buf, resname
-    real(kind=JPRM),allocatable :: qlat_ch_old_2d(:,:)
-    real(kind=JPRM),allocatable :: qlat_s_old_2d(:,:)
-    real(kind=JPRM),allocatable :: old_q_day_2d(:,:)
+    !write restart file
+	  ! real(kind=JPRM),allocatable :: qlat_ch_old_2d(:,:)
+    real,allocatable :: qlat_ch_old_2d(:,:)
+	  ! real(kind=JPRM),allocatable :: qlat_s_old_2d(:,:)
+    real,allocatable :: qlat_s_old_2d(:,:)
+    real,allocatable :: old_q_day_2d(:,:)
     allocate (qlat_ch_old_2d(1:pfafunits,1:ndx))
-    allocate (qlat_s_old_2d(1:pfafunits,1:ndx))
+	  allocate (qlat_s_old_2d(1:pfafunits,1:ndx))
     allocate (old_q_day_2d(1:pfafunits,1:ndx))
     !write restart file
     do i=1,pfafunits
         qlat_ch_old_2d(i,:) = qlat_ch_old(i)
-        qlat_s_old_2d(i,:) = qlat_s_old(i)
+		qlat_s_old_2d(i,:) = qlat_s_old(i)
         old_q_day_2d(i,:) = old_q_day(i)/(0.3048**3)
     enddo
     resname = trim(outDir)//'/'//trim(restartFile)
@@ -60,13 +63,18 @@ subroutine restartout()
     write(12,rec=2) old_q_ch_in
     write(12,rec=3) old_q_ch_out
     write(12,rec=4) qlat_ch_old_2d
-    write(12,rec=5) y_pl_s
-    write(12,rec=6) q_pl_s(:,:)
-    write(12,rec=7) qlat_s_old_2d(:,:)
+	  write(12,rec=5) y_pl_s
+    write(12,rec=6) q_pl_s
+    write(12,rec=7) qlat_s_old_2d
     write(12,rec=8) old_q_day_2d(:,:)
     close(12)
 
+    deallocate (qlat_ch_old_2d)
+    deallocate (qlat_s_old_2d)
+    deallocate (old_q_day_2d)
+
     return
 end subroutine restartout
+
 
 end module outputdata

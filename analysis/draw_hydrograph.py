@@ -1,0 +1,172 @@
+# %%
+import numpy as np
+import xarray as xr
+import matplotlib;matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import seaborn as sns
+import datetime
+import os
+sns.set_style("whitegrid")
+
+
+def read_dataset(ncpath, dsetname, key):
+    """
+    Args:
+        ncpath (str)
+        dsetname (str)
+        key (str): "kind" coordinate name.
+    Notes:
+        netCDF dataset should have "kind" coordinate.
+    """
+    data = xr.open_dataset(ncpath)
+    darray = data[dsetname].sel(kind=key)
+    return darray
+
+
+def read_dataset_ens(ncpath, dsetname, key):
+    """
+    Args:
+        ncpath (str)
+        dsetname (str)
+        key (str): "ens" coordinate name.
+    Notes:
+        netCDF dataset should have "kind" coordinate.
+    """
+    data = xr.open_dataset(ncpath)
+    darray = data[dsetname].sel(ens=key)
+    return darray
+
+
+def draw_hydrograph(darrays, labels, colors, linestyles,
+                     linewidths, timelabel="time"):
+    ax = plt.figure(figsize=(10, 5))
+    for i in range(len(darrays)):
+        darray = darrays[i]
+        if np.isnan(darray.values).all():
+            continue
+        plt.plot(darray[timelabel],
+                 darray.values,
+                 label=labels[i],
+                 color=colors[i],
+                 linestyle=linestyles[i],
+                 linewidth=linewidths[i])
+    plt.xlabel("Date")
+    plt.ylabel("Discharge")
+    plt.title(darray.reach.values, weight="bold")
+    return ax
+
+
+def add_shades_on_plot(ax, top_darrays, bottom_darrays, colors,
+                       linestyles, linewidths, timelabel="time"):
+    for i in range(len(top_darrays)):
+        top = top_darrays[i]
+        bottom = bottom_darrays[i]
+        if np.isnan(top.values).all():
+            continue
+        plt.plot(top[timelabel],
+                 top.values,
+                 color=colors[i],
+                 linestyle=linestyles[i],
+                 linewidth=linewidths[i])
+        plt.plot(bottom[timelabel],
+                 bottom.values,
+                 color=colors[i],
+                 linestyle=linestyles[i],
+                 linewidth=linewidths[i])
+        plt.fill_between(top[timelabel],
+                         bottom.values,
+                         top.values,
+                         color=colors[i],
+                         alpha=0.25)
+    return ax
+
+
+def add_obs_on_plot(ax, darrays_point, darrays_err, labels,
+                    colors, styles, timelabel="time"):
+    for i in range(len(darrays_point)):
+        if np.isnan(darrays_point[i].values).all():
+            continue
+        points = darrays_point[i].values
+        errs = darrays_err[i].values
+        plt.errorbar(darrays_point[i][timelabel].values,
+                     points,
+                     yerr=errs,
+                     color=colors[i],
+                     marker=styles[i],
+                     label=labels[i])
+    return ax
+
+
+def tester():
+    # define path
+    ncpath_baseline = "../../out/MSR_cal10_temp/discharge.nc"
+    ncpath_assim = "../../out/MSR_cal10_temp/dischargeAssim.nc"
+    ncpath_gauge = "../../data/obs/gauge.nc"
+    ncpath_bam = "../../data/obs/bam_wgauge_1984_2010.nc"
+    outdir = "./figure"
+    # define date
+    sdate = datetime.datetime(2002, 10, 5)
+    edate = datetime.datetime(2004, 7, 1)
+    # read data
+    baseline = read_dataset_ens(ncpath_baseline, "all", 0)
+    assim = read_dataset(ncpath_assim, "rpr", "mean")
+    assim_top = read_dataset(ncpath_assim, "rpr", "p75")
+    assim_bottom = read_dataset(ncpath_assim, "rpr", "p25")
+    gauge = read_dataset(ncpath_gauge, "gauge", "discharge")
+    bam_mean = read_dataset(ncpath_bam, "bam", "mean")
+    bam_std = read_dataset(ncpath_bam, "bam", "std")
+    # create dummy data array
+    dummy = baseline.copy()
+    dummy.values = np.ones_like(baseline.values)*np.nan
+    # mkdir
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
+    # decide which reaches we draw
+    valreaches = gauge["reach"].values.tolist()
+    # bamreaches = bam_mean["reach"].values.tolist()
+    # valreaches.extend(bamreaches)
+    # valreaches = list(set(valreaches))
+    for valreach in valreaches:
+        print(valreach)
+        # select data and set dummy where no data
+        b_darray = baseline.sel(reach=valreach, time=slice(sdate, edate))
+        a_darray = assim.sel(reach=valreach, time=slice(sdate, edate))
+        a_top_darray = assim_top.sel(reach=valreach, time=slice(sdate, edate))
+        a_bottom_darray = assim_bottom.sel(reach=valreach, time=slice(sdate, edate))
+        try:
+            g_darray = gauge.sel(reach=valreach, time=slice(sdate, edate))
+        except(KeyError):
+            g_darray = dummy.sel(reach=valreach, time=slice(sdate, edate))
+        try:
+            bm_darray = bam_mean.sel(reach=valreach, time=slice(sdate, edate))
+            bs_darray = bam_std.sel(reach=valreach, time=slice(sdate, edate))
+        except(KeyError):
+            bm_darray = dummy.sel(reach=valreach, time=slice(sdate, edate))
+            bs_darray = dummy.sel(reach=valreach, time=slice(sdate, edate))
+        # main lines
+        darrays = [b_darray, a_darray, g_darray]
+        labels = ["baseline", "assim", "gauge"]
+        colors = ["#D4AC0D", "#16A085", "k"]
+        linestyles = ["-", "-", "--"]
+        linewidths = [2, 1, 2]
+        # shades (uncertainty)
+        top_darrays = [a_top_darray]
+        bottom_darrays = [a_bottom_darray]
+        colors_shade = ["#16A085"]
+        linestyles_shade = ["-"]
+        linewidths_shade = [0.5]
+        # draw
+        ax = draw_hydrograph(darrays, labels, colors, linestyles, linewidths)
+        ax = add_shades_on_plot(ax, top_darrays, bottom_darrays,
+                                colors_shade, linestyles_shade, linewidths_shade)
+        ax = add_obs_on_plot(ax, [bm_darray], [bs_darray], ["bam"],
+                             ["#1F618D"], ["o"])
+        plt.legend()
+        plt.savefig(os.path.join(outdir, "{0}.png".format(valreach)),
+                    dpi=300)
+        plt.close()
+
+
+
+if __name__ == "__main__":
+    tester()

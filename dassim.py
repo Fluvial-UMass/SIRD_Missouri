@@ -20,6 +20,7 @@ class DA_pyHRR(object):
         self.initFile.read(config)
 
         # general settings
+        self.take_log = False
         self.expName = self.initFile.get("experiment", "expName")
         self.undef = self.initFile.get("observation", "undef")
         self.rootDir = self.initFile.get("model", "rootDir")
@@ -188,18 +189,27 @@ class DA_pyHRR(object):
                             for eNum in range(eTot)], axis=0)
         dschg_cfs_ens = \
             dschg_cfs_ens.astype(np.float64).reshape(1, eTot, 1, self.nReach)
-        dschg_cfs_ens = np.where(dschg_cfs_ens == 0, 1e-8, dschg_cfs_ens)
-        dschg_cfs_ens_log = np.log(dschg_cfs_ens)
         obsvars = [1]
-        # As an API requirements,
-        # the input simulation array should be (nvars, eTot, nT, nReach)
-        xa_log, Ws = self.daCore.letkf_vector(dschg_cfs_ens_log,
+        if self.take_log:
+            dschg_cfs_ens = np.where(dschg_cfs_ens == 0, 1e-8, dschg_cfs_ens)
+            dschg_cfs_ens_log = np.log(dschg_cfs_ens)
+            # As an API requirements,
+            # the input simulation array should be (nvars, eTot, nT, nReach)
+            xa_log, Ws = self.daCore.letkf_vector(dschg_cfs_ens_log,
+                                                  obsMean,
+                                                  obsStd.astype(np.float64),
+                                                  obsvars,
+                                                  guess="prior",
+                                                  nCPUs=self.nCpus)
+            xa = np.exp(xa_log)
+        else:
+            xa, Ws = self.daCore.letkf_vector(dschg_cfs_ens,
                                               obsMean,
                                               obsStd.astype(np.float64),
                                               obsvars,
                                               guess="prior",
                                               nCPUs=self.nCpus)
-        xa = np.exp(xa_log)
+            xa = abs(xa)
         if cache:
             outname = date.strftime("%Y%m%d%h_Ws.pkl")
             outPath = os.path.join(self.assimCacheDir, outname)
@@ -209,6 +219,7 @@ class DA_pyHRR(object):
         print(dschg_cfs_ens[0,:,-1,23916])
         print(xa[0,:,-1,23916])
         # xa[xa > np.log(limitval)] = dschg_cfs_ens[0][xa > np.log(limitval)]
+
         innovation = xa[0] - dschg_cfs_ens[0]
         updateChannel_parallel(innovation, self.ndx, self.upas,
                                self.nReach, self.restarts,
@@ -237,14 +248,29 @@ class DA_pyHRR(object):
         obs = obsDf[obsDf.index == date]
         # python index starts from 0
         reaches = obs.reach.values - self.reachStart
-        obsMean = np.ones([self.nReach]) * self.daCore.undef
-        obsStd = np.ones([self.nReach]) * 0.01
 
-        # take logs
-        obsMean[reaches] = self.take_nLog(self.cms2cfs(obs["mean"].values))
-        obsConfLow = self.take_nLog(self.cms2cfs(obs["conf.low"].values))
-        obsConfUpp = self.take_nLog(self.cms2cfs(obs["conf.high"].values))
-        obsStd[reaches] = infl*(obsConfUpp - obsConfLow) / (4*1.96)
+        if self.take_log:
+            # take logs
+            obsMean = np.ones([self.nReach]) * np.nan
+            obsStd = np.ones([self.nReach]) * np.nan
+            obsMean[reaches] = self.take_nLog(self.cms2cfs(obs["mean"].values))
+            obsConfLow = self.take_nLog(self.cms2cfs(obs["conf.low"].values))
+            obsConfUpp = self.take_nLog(self.cms2cfs(obs["conf.high"].values))
+            obsStd[reaches] = infl*(obsConfUpp - obsConfLow) / (4*1.96)
+        else:
+            logMean = np.ones([self.nReach]) * np.nan
+            logStd = np.ones([self.nReach]) * np.nan
+            logMean[reaches] = self.take_nLog(self.cms2cfs(obs["mean"].values))
+            obsConfLow = self.take_nLog(self.cms2cfs(obs["conf.low"].values))
+            obsConfUpp = self.take_nLog(self.cms2cfs(obs["conf.high"].values))
+            logStd[reaches] = infl*(obsConfUpp - obsConfLow) / (4*1.96)
+            obsMean, obsStd = self.get_exp_from_lognormal(logMean, logStd)
+        obsMean[np.isnan(obsMean)] = self.daCore.undef
+        obsStd[np.isnan(obsStd)] = 0.01
+        print(obsMean[reaches])
+        print(obsMean[obsMean!=self.daCore.undef])
+        print(obsStd[reaches])
+        print(obsStd[obsMean!=self.daCore.undef])
         obsMean = obsMean.reshape(1, -1)
         obsStd = obsStd.reshape(1, -1)
         return obsMean, obsStd
@@ -258,6 +284,12 @@ class DA_pyHRR(object):
         cfs_undef = self.daCore.undef/(0.3048**3)
         cfs[np.where(cfs-cfs_undef < 0.0001)] = self.daCore.undef
         return cfs
+
+    def get_exp_from_lognormal(self, logMean, logStd):
+        obsMean = np.exp(logMean+(logStd**2/2))
+        obsVar = np.exp(2*logMean+logStd**2)*(np.exp(logStd**2)-1)
+        obsStd = np.sqrt(obsVar)
+        return obsMean, obsStd
 
     def readObs(self):
         obsPath = self.initFile.get("observation", "obsPath")

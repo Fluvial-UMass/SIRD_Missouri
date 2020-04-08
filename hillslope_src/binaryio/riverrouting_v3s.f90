@@ -9,8 +9,7 @@ integer rstart, rend
 !This loop is dependent on upstream inflows, use domains to parallelize
 do j=rstart,rend    
 
-    qlat_ch=q_pl_s(j,ndx)*2 !(fps*Lp)/ft/plane
-	!qlat_ch=ex_s(j)*length_p(j)*2.0 !(fps*Lp)/ft/plane
+	qlat_ch=q_pl_s(j,ndx)*2.0 !(fps*Lp)/ft/plane
 
 	qlat_ch_ave=0.5*(qlat_ch+qlat_ch_old(j)) !added 11/19/09
     

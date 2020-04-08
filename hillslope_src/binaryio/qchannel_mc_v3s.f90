@@ -27,8 +27,8 @@ subroutine route_mc_ch(j)
     if (updateMode .eq. 'normal')then
 	    old_q(j,ndx)=q_out(j)
     else if (updateMode .eq. 'assimUpdate')then
-        write(*,*) j,old_q_res(j,ndx)
-        old_q(j,ndx)=old_q_res(j,ndx)
+        write(*,*) j,old_q(j,ndx)
+        !old_q(j,ndx)=old_q_res(j,ndx)
     else
         write(*,*) 'invalid argument',updateMode
     end if

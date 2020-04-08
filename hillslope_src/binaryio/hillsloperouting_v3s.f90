@@ -11,6 +11,7 @@ integer hstart, hend
 !determine surface runoff and subsurface runoff to channels
 !This loop can be sent to all process without waiting for results
  do j=hstart,hend
+   
     !surface routing
 	!check is surface routing is needed for plane 1		
 	if(ex_s(j).eq.0.AND.y_pl_s(j,ndx).lt.0.001)then
