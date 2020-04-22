@@ -1,6 +1,7 @@
 # %%
 import numpy as np
 import xarray as xr
+import h5py
 import matplotlib;matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -34,6 +35,13 @@ def read_dataset_ens(ncpath, dsetname, key):
     """
     data = xr.open_dataset(ncpath)
     darray = data[dsetname].sel(ens=key)
+    return darray
+
+
+def read_dataset_baseline(ncpath, dsetname, key):
+    data = xr.open_dataset(ncpath)
+    darray = data[dsetname]
+    print(darray)
     return darray
 
 
@@ -97,36 +105,78 @@ def add_obs_on_plot(ax, darrays_point, darrays_err, labels,
     return ax
 
 
+def add_obstime_on_plot_core(ax, patch, obsdarray, ymax,
+                             timelabel="time"):
+    obsreaches = obsdarray["reach"].values.tolist()
+    obsreaches_patch = list(set(patch) & set(obsreaches))
+    if len(obsreaches_patch) == 0:
+        return ax
+    else:
+        obsdarray_patch = obsdarray.sel(reach=obsreaches_patch).values
+        obsflags = np.where(np.isnan(obsdarray_patch), 0, 1).sum(axis=1)
+        dates = obsdarray[timelabel].values
+        dates_plot = dates[obsflags > 0]
+        obsflags_plot = obsflags[obsflags > 0]
+        for idx, date_plot in enumerate(dates_plot):
+            plt.axvline(date_plot, ymin=0, ymax=ymax, color="red",
+                        linewidth=2, alpha=0.5)
+        return ax
+
+
+def add_obstime_on_plot(ax, reach, patches, upstreams, obsdarray, ymax,
+                        reachstart=1):
+    patch = np.array(patches[reach-reachstart]) + 1  # from 0-start to 1-start
+    upstream = np.array(upstreams[reach-reachstart]) + 1 # from 0-start to 1-start
+    combined_patch = patch.tolist()
+    combined_patch.extend(upstream.tolist())
+    combined_patch = list(set(combined_patch))
+    ax = add_obstime_on_plot_core(ax, combined_patch, obsdarray, ymax)
+    return ax
+
+
 def tester():
     # define path
-    ncpath_baseline = "../../out/MSR_cal10_temp/discharge.nc"
-    ncpath_assim = "../../out/MSR_cal10_temp/dischargeAssim.nc"
+    ncpath_baseline = "../../out/baseline_cal10/discharge.nc"
+    ncpath_assim = "../../out/MSR_cal10_logdelta/dischargeAssim.nc"
+    # ncpath_assim = "../../out/MSR_cal10_insert/dischargeInsert.nc"
     ncpath_gauge = "../../data/obs/gauge.nc"
     ncpath_bam = "../../data/obs/bam_wgauge_1984_2010.nc"
-    outdir = "./figure"
+    path_upreaches = "../../data/hrr/upReaches.hdf5"
+    path_localpatch = "../../data/hrr/localPatch_MERIT.hdf5"
+    outdir = "./check"
+
     # define date
-    sdate = datetime.datetime(2002, 10, 5)
-    edate = datetime.datetime(2004, 7, 1)
+    sdate = datetime.datetime(2004, 1, 1)
+    edate = datetime.datetime(2005, 1, 1)
+
     # read data
-    baseline = read_dataset_ens(ncpath_baseline, "all", 0)
+    baseline = read_dataset_baseline(ncpath_baseline, "discharge", "discharge")
     assim = read_dataset(ncpath_assim, "rpr", "mean")
+    # assim = read_dataset_baseline(ncpath_assim, "discharge", "dicharge")
     assim_top = read_dataset(ncpath_assim, "rpr", "p75")
     assim_bottom = read_dataset(ncpath_assim, "rpr", "p25")
     gauge = read_dataset(ncpath_gauge, "gauge", "discharge")
     bam_mean = read_dataset(ncpath_bam, "bam", "mean")
     bam_std = read_dataset(ncpath_bam, "bam", "std")
+    upstreams = h5py.File(path_upreaches, mode="r")["upstream_reaches"][:]
+    patches = h5py.File(path_localpatch, mode="r")["network"][:]
+
     # create dummy data array
     dummy = baseline.copy()
     dummy.values = np.ones_like(baseline.values)*np.nan
+
     # mkdir
     if not os.path.exists(outdir):
         os.makedirs(outdir)
+
     # decide which reaches we draw
     valreaches = gauge["reach"].values.tolist()
     # bamreaches = bam_mean["reach"].values.tolist()
     # valreaches.extend(bamreaches)
     # valreaches = list(set(valreaches))
-    for valreach in valreaches:
+
+    # for valreach in valreaches:
+    for valreach in [28691, 28835]:
         print(valreach)
         # select data and set dummy where no data
         b_darray = baseline.sel(reach=valreach, time=slice(sdate, edate))
@@ -157,10 +207,18 @@ def tester():
         linewidths_shade = [0.5]
         # draw
         ax = draw_hydrograph(darrays, labels, colors, linestyles, linewidths)
-        ax = add_shades_on_plot(ax, top_darrays, bottom_darrays,
-                                colors_shade, linestyles_shade, linewidths_shade)
+        # ax = add_shades_on_plot(ax, top_darrays, bottom_darrays,
+        #                         colors_shade, linestyles_shade, linewidths_shade)
         ax = add_obs_on_plot(ax, [bm_darray], [bs_darray], ["bam"],
                              ["#1F618D"], ["o"])
+        # observaiton time
+        ymax_ = max(a_darray.max().values,
+                    b_darray.max().values,
+                    g_darray.max().values)
+        ymax = ymax_ + ymax_/10
+        obsdarray = bam_mean.sel(time=slice(sdate, edate))
+        ax = add_obstime_on_plot(ax, valreach, patches, upstreams,
+                                 obsdarray, ymax)
         plt.legend()
         plt.savefig(os.path.join(outdir, "{0}.png".format(valreach)),
                     dpi=300)

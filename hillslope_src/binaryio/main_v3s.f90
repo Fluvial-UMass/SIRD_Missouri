@@ -64,7 +64,7 @@ program PFAF_Model
 
             do i=1, pfafunits
                     old_q_day(i) = (old_q_day(i)/24.)*0.3048**3
-                    if(old_q_day(idout(i)).ge.1000000000000.0) write(*,*) i, idout(i),&
+                    if(old_q_day(i).ge.1000000000000.0) write(*,*) i, &
                     iyear, imonth, iday, old_q_day(i)
             enddo
 
@@ -72,7 +72,7 @@ program PFAF_Model
             daynum = daynum+1
 
             ! if(iday.eq.1.AND.imonth.eq.1)then
-                write(*,*) 'yr mo day ', iyear, imonth, iday, 'outlet Q(cms) ', old_q_day(28931)
+                ! write(*,*) 'yr mo day ', iyear, imonth, iday, 'outlet Q(cms) ', old_q_day(28931)
             ! endif
             call restartout()
             call resultsout()

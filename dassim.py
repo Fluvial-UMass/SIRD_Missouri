@@ -6,6 +6,7 @@ import datetime
 import configparser
 import subprocess
 import pickle
+from tqdm import tqdm
 from multiprocessing import Pool
 import pyletkf
 import pyHRR as pyHRR
@@ -20,7 +21,8 @@ class DA_pyHRR(object):
         self.initFile.read(config)
 
         # general settings
-        self.take_log = False
+        self.take_log = self.initFile.getboolean("assimilation", "take_log")
+        self.logdelta = self.initFile.getboolean("assimilation", "logdelta")
         self.expName = self.initFile.get("experiment", "expName")
         self.undef = self.initFile.get("observation", "undef")
         self.rootDir = self.initFile.get("model", "rootDir")
@@ -191,7 +193,7 @@ class DA_pyHRR(object):
             dschg_cfs_ens.astype(np.float64).reshape(1, eTot, 1, self.nReach)
         obsvars = [1]
         if self.take_log:
-            dschg_cfs_ens = np.where(dschg_cfs_ens == 0, 1e-8, dschg_cfs_ens)
+            dschg_cfs_ens = np.where(dschg_cfs_ens < 1e-3, 1e-3, dschg_cfs_ens)
             dschg_cfs_ens_log = np.log(dschg_cfs_ens)
             # As an API requirements,
             # the input simulation array should be (nvars, eTot, nT, nReach)
@@ -201,7 +203,14 @@ class DA_pyHRR(object):
                                                   obsvars,
                                                   guess="prior",
                                                   nCPUs=self.nCpus)
-            xa = np.exp(xa_log)
+            if self.logdelta:
+                innovation = \
+                    xa_log - dschg_cfs_ens_log.mean(axis=1).reshape(1, 1, 1, self.nReach)
+                coef = np.where(innovation>0, 1, -1)
+                xa = np.exp(dschg_cfs_ens_log) + coef*np.exp(abs(innovation))
+                xa = abs(xa)
+            else:
+                xa = np.exp(xa_log)
         else:
             xa, Ws = self.daCore.letkf_vector(dschg_cfs_ens,
                                               obsMean,
@@ -216,8 +225,8 @@ class DA_pyHRR(object):
             with open(outPath, "wb") as f:
                 pickle.dump(Ws, f)
         # limiter: to avoid diversion.
-        print(dschg_cfs_ens[0,:,-1,23916])
-        print(xa[0,:,-1,23916])
+        print(dschg_cfs_ens[0,:,-1,14883])
+        print(xa[0,:,-1,14883])
         # xa[xa > np.log(limitval)] = dschg_cfs_ens[0][xa > np.log(limitval)]
 
         innovation = xa[0] - dschg_cfs_ens[0]
@@ -268,9 +277,7 @@ class DA_pyHRR(object):
         obsMean[np.isnan(obsMean)] = self.daCore.undef
         obsStd[np.isnan(obsStd)] = 0.01
         print(obsMean[reaches])
-        print(obsMean[obsMean!=self.daCore.undef])
         print(obsStd[reaches])
-        print(obsStd[obsMean!=self.daCore.undef])
         obsMean = obsMean.reshape(1, -1)
         obsStd = obsStd.reshape(1, -1)
         return obsMean, obsStd

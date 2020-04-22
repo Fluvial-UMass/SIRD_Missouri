@@ -82,6 +82,11 @@ def define_paths(args):
                             "{0:02d}", "discharge.{0}".format(args.itype))
         outpath = os.path.join(args.outdir, args.name,
                                "discharge.{0}".format(args.otype))
+    elif args.case == "insert":
+        path = os.path.join(args.outdir, args.name,
+                            "dischargeInsert.{0}".format(args.itype))
+        outpath = os.path.join(args.outdir, args.name,
+                               "dischargeInsert_summarized.{0}".format(args.otype))
     else:
         KeyError("case {0} is not a valid argument.".format(args.name))
     return path, outpath
@@ -129,14 +134,11 @@ def read_input_nc(path, sdate, edate, drop_duplicates=False,
     cols = darr_sel[kkey].values
     inds = darr_sel["time"].values
     if drop_duplicates:
-        print(
-            RuntimeWarning(
-                "drop_duplicates is not fully examined yet."+
-                " Use this for your own risk.")
-            )
+        RuntimeWarning("drop_duplicates is not fully examined yet."+
+                       " Use this for your own risk.")
         _, newidx = np.unique(inds[::-1], return_index=True)
-        values = values[newidx]
-        inds = inds[newidx]
+        values = values[::-1][newidx]
+        inds = inds[::-1][newidx]
     return values, cols, inds
 
 
