@@ -1,0 +1,12 @@
+*.mod
+*.c
+build/
+.vscode/
+hillslope_src/*.txt
+*.so
+hillslope_src/run
+__pycache__
+hillslope_src/binaryio/run
+analysis/*.csv
+analysis/*.tsv
+analysis/stats/
