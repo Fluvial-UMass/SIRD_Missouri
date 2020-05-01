@@ -17,8 +17,8 @@ makecdf_KGE <- function(){
   ref_forTidy$case = "baseline"
   # ref_forTidy = left_join(ref_forTidy, meanflow, by="hrrid")
   
-  ref_forTidyb = ref_forTidy %>% subset(NSE < threshold) #%>% subset(NSE > -10000)
-  exp_forTidyb = exp_forTidy %>% filter(hrrid %in% ref_forTidyb$hrrid) #%>% subset(NSE > -10000)
+  ref_forTidyb = ref_forTidy %>% subset(NSE < threshold) 
+  exp_forTidyb = exp_forTidy %>% filter(hrrid %in% ref_forTidyb$hrrid) 
   ref_forTidyb = ref_forTidyb %>% filter(hrrid %in% exp_forTidyb$hrrid)
   all_forTidyb = rbind(exp_forTidyb, ref_forTidyb)
   ggtidyb = all_forTidyb %>% select(hrrid, case, KGE) %>% pivot_longer(c(-hrrid, -case), values_to="values", names_to="stats")
@@ -52,8 +52,8 @@ makecdf_NRMSE <- function(){
   ref_forTidy$case = "baseline"
   # ref_forTidy = left_join(ref_forTidy, meanflow, by="hrrid")
   
-  ref_forTidyb = ref_forTidy %>% subset(NSE < threshold) #%>% subset(NSE > -10000)
-  exp_forTidyb = exp_forTidy %>% filter(hrrid %in% ref_forTidyb$hrrid) #%>% subset(NSE > -10000)
+  ref_forTidyb = ref_forTidy %>% subset(NSE < threshold) 
+  exp_forTidyb = exp_forTidy %>% filter(hrrid %in% ref_forTidyb$hrrid) 
   ref_forTidyb = ref_forTidyb %>% filter(hrrid %in% exp_forTidyb$hrrid)
   all_forTidyb = rbind(exp_forTidyb, ref_forTidyb)
   ggtidyb = all_forTidyb %>% select(hrrid, case, NRMSE) %>% pivot_longer(c(-hrrid, -case), values_to="values", names_to="stats")
@@ -83,7 +83,7 @@ makediffhist_kge <- function(nsethreshold=0, flag="below"){
   all = left_join(exp, ref, by="hrrid")
   
   if (flag == "up") {
-    all_sel_below = all %>% subset(nse_baseline >= nsethreshold) #%>% subset(nse_assimilated > -10000)
+    all_sel_below = all %>% subset(nse_baseline >= nsethreshold)
     hist_below = ggplot(all_sel_below, aes(x=(kge_assimilated-kge_baseline))) + 
       geom_histogram(bins=30, fill="#F1C40F", color="black") + xlim(-2.5,5) +
       theme_light() + xlab("improvement in KGE") + ylab("count") + 
@@ -96,7 +96,7 @@ makediffhist_kge <- function(nsethreshold=0, flag="below"){
             legend.title=element_text(size=18))
     print(summary(all_sel_below$kge_assimilated-all_sel_below$kge_baseline))
   } else {
-    all_sel_below = all %>% subset(nse_baseline < nsethreshold) #%>% subset(nse_assimilated > -10000)
+    all_sel_below = all %>% subset(nse_baseline < nsethreshold)
     hist_below = ggplot(all_sel_below, aes(x=(kge_assimilated-kge_baseline))) + 
       geom_histogram(bins=30, fill="#F1C40F", color="black") + xlim(-2.5,5) +
       theme_light() + xlab("improvement in KGE") + ylab("count") + 
@@ -122,7 +122,7 @@ makediffhist_nrmse <- function(nsethreshold=0, flag="below"){
   # meanflow = read.csv("./average_discharge_gauge.csv")
   all = left_join(exp, ref, by="hrrid")
   if (flag == "up") {
-    all_sel_below = all %>% subset(nse_baseline >= threshold) #%>% subset(nse_assimilated > -10000)
+    all_sel_below = all %>% subset(nse_baseline >= threshold)
     hist_below = ggplot(all_sel_below, aes(x=-1*(nrmse_assimilated-nrmse_baseline))) +
       geom_histogram(bins=30, fill="#2E4053", color="black") + xlim(-2.5,5) +
       theme_light() + xlab("improvement in NRMSE") + ylab("count") +
@@ -135,7 +135,7 @@ makediffhist_nrmse <- function(nsethreshold=0, flag="below"){
             legend.title=element_text(size=18))
     print(summary(-1*(all_sel_below$nrmse_assimilated-all_sel_below$nrmse_baseline)))
   } else {
-    all_sel_below = all %>% subset(nse_baseline < nsethreshold) #%>% subset(nse_assimilated > -10000)
+    all_sel_below = all %>% subset(nse_baseline < nsethreshold)
     hist_below = ggplot(all_sel_below, aes(x=-1*(nrmse_assimilated-nrmse_baseline))) +
       geom_histogram(bins=30, fill="#2E4053", color="black") + xlim(-2.5,5) +
       theme_light() + xlab("improvement in NRMSE") + ylab("count") +
