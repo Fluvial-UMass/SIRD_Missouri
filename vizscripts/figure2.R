@@ -71,7 +71,7 @@ hist_above = ggplot(all_sel_above, aes(x=(nse_assimilated-nse_baseline))) + geom
         legend.title=element_text(size=18))
 hist_above
 
-exp_ = exp %>% select(hrrid, nse_assimilated) # %>% subset(nse_assimilated > -10000)
+exp_ = exp %>% select(hrrid, nse_assimilated)
 colnames(exp_) = c("hrrid", "nse")
 exp_$case <- "assimilated"
 ref_ = ref %>% select(hrrid, nse_baseline)
@@ -102,8 +102,8 @@ names(ref_forTidy) = c("r", "RMSE", "NRMSE", "RRMSE", "RBIAS", "NSE", "KGE", "hr
 ref_forTidy$case = "baseline"
 # ref_forTidy = left_join(ref_forTidy, meanflow, by="hrrid")
 
-ref_forTidyb = ref_forTidy %>% subset(NSE < threshold)# %>% subset(NSE > -10000)
-exp_forTidyb = exp_forTidy %>% filter(hrrid %in% ref_forTidyb$hrrid)# %>% subset(NSE > -10000)
+ref_forTidyb = ref_forTidy %>% subset(NSE < threshold)
+exp_forTidyb = exp_forTidy %>% filter(hrrid %in% ref_forTidyb$hrrid)
 ref_forTidyb = ref_forTidyb %>% filter(hrrid %in% exp_forTidyb$hrrid)
 all_forTidyb = rbind(exp_forTidyb, ref_forTidyb)
 ggtidyb = all_forTidyb %>% select(hrrid, case, NSE) %>% pivot_longer(c(-hrrid, -case), values_to="values", names_to="stats")
